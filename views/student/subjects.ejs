@@ -1,0 +1,87 @@
+<%- include('../layouts/app-top', { title: title, active: 'subjects' }) %>
+
+<div class="page-head">
+  <h1>My Subjects</h1>
+  <p>Add the subjects you are taking this term. Each subject's instructor will sign your clearance.</p>
+</div>
+
+<% if (!term) { %>
+  <div class="lock-note">There is no active academic term right now.</div>
+<% } else { %>
+
+  <% if (locked) { %>
+    <div class="lock-note">
+      Your subjects are locked because you already requested a clearance for this term.
+      To change them, cancel your request first (possible only while no office has signed).
+    </div>
+  <% } else { %>
+    <section class="card">
+      <h3>Add a subject</h3>
+      <p class="card-sub">Term: <%= term.school_year %>, <%= term.semester %></p>
+
+      <form method="post" action="/student/subjects" data-once novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="grid-2">
+          <div class="field">
+            <label for="subject_code">Subject code</label>
+            <input class="input" type="text" id="subject_code" name="subject_code" placeholder="e.g. IT 301" maxlength="20" required />
+          </div>
+          <div class="field">
+            <label for="subject_title">Subject title</label>
+            <input class="input" type="text" id="subject_title" name="subject_title" placeholder="e.g. Web Systems and Technologies" maxlength="100" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="instructor_id">Instructor</label>
+          <select class="input" id="instructor_id" name="instructor_id" required>
+            <option value="">Select your instructor</option>
+            <% instructors.forEach(function (i) { %>
+              <option value="<%= i.id %>"><%= i.last_name %>, <%= i.first_name %><%= i.college_code ? ' (' + i.college_code + ')' : '' %></option>
+            <% }) %>
+          </select>
+          <% if (!instructors.length) { %>
+            <p class="hint">No instructors are registered yet. Please contact the administrator.</p>
+          <% } else { %>
+            <p class="hint">Can't find your instructor? Ask the administrator to create their account.</p>
+          <% } %>
+        </div>
+        <button class="btn btn-primary" type="submit">Add subject</button>
+      </form>
+    </section>
+  <% } %>
+
+  <section class="card">
+    <h3>Subjects this term</h3>
+    <p class="card-sub"><%= subjects.length %> subject<%= subjects.length === 1 ? '' : 's' %> added</p>
+
+    <% if (!subjects.length) { %>
+      <div class="empty"><%- icon('clipboard') %><h4>No subjects yet</h4><p>Add your subjects using the form above.</p></div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Code</th><th>Title</th><th>Instructor</th><% if (!locked) { %><th></th><% } %></tr></thead>
+          <tbody>
+            <% subjects.forEach(function (s) { %>
+              <tr>
+                <td><strong><%= s.subject_code %></strong></td>
+                <td><%= s.subject_title %></td>
+                <td><%= s.i_first ? s.i_first + ' ' + s.i_last : '—' %></td>
+                <% if (!locked) { %>
+                  <td>
+                    <form class="inline-form" method="post" action="/student/subjects/<%= s.id %>/delete"
+                          onsubmit="return confirm('Remove <%= s.subject_code %>?');">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                      <button class="btn btn-danger btn-sm" type="submit">Remove</button>
+                    </form>
+                  </td>
+                <% } %>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+<% } %>
+
+<%- include('../layouts/app-bottom') %>

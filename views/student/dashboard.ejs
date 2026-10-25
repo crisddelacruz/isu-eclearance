@@ -1,0 +1,107 @@
+<%- include('../layouts/app-top', { title: title, active: 'dashboard' }) %>
+<%
+  const r = activeRequest;
+  const yr = ['1st', '2nd', '3rd', '4th', '5th', '6th'][(currentUser.year_level || 1) - 1] || '';
+%>
+
+<section class="welcome">
+  <h1>Welcome, <%= currentUser.first_name %>!</h1>
+  <p><%= currentUser.program_name %> &middot; <%= yr %> Year<br />Track your clearance and see which offices have signed.</p>
+  <span class="badge badge-student">Student</span>
+</section>
+
+<div class="stat-grid">
+  <div class="stat"><span class="stat-ic green"><%- icon('checkc') %></span><div><strong><%= r ? r.approved : 0 %></strong><span>Offices signed</span></div></div>
+  <div class="stat"><span class="stat-ic gold"><%- icon('clock') %></span><div><strong><%= r ? r.pending : 0 %></strong><span>Pending</span></div></div>
+  <div class="stat"><span class="stat-ic red"><%- icon('file') %></span><div><strong><%= r ? r.rejected : 0 %></strong><span>Needs action</span></div></div>
+  <div class="stat"><span class="stat-ic blue"><%- icon('clipboard') %></span><div><strong><%= subjectCount %></strong><span>Subjects this term</span></div></div>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h3>Current term</h3>
+      <p class="card-sub">The clearance period set by the university.</p>
+    </div>
+  </div>
+  <% if (term) { %>
+    <div class="meta-row">
+      <div><small>School year</small><strong><%= term.school_year %></strong></div>
+      <div><small>Semester</small><strong><%= term.semester %></strong></div>
+      <div><small>Clearance opens</small><strong><%= fmtDate(term.clearance_open_date) %></strong></div>
+      <div><small>Deadline</small><strong><%= fmtDate(term.clearance_deadline) %></strong></div>
+    </div>
+  <% } else { %>
+    <p class="card-sub" style="margin:0">No academic term is active right now. Please check back later.</p>
+  <% } %>
+</section>
+
+<div class="two-col">
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h3>Clearance progress</h3>
+        <p class="card-sub"><%= r ? r.purpose + ' · ' + r.reference_no : 'You have not requested a clearance yet.' %></p>
+      </div>
+      <% if (r) { %><span class="pill <%= pillClass(r.status) %>"><%= statusLabel(r.status) %></span><% } %>
+    </div>
+
+    <% if (!r) { %>
+      <div class="empty">
+        <%- icon('file') %>
+        <h4>No clearance request yet</h4>
+        <p>Add your subjects first, then request your clearance.</p>
+        <div class="actions">
+          <a class="btn btn-outline btn-sm" href="/student/subjects">Add my subjects</a>
+          <a class="btn btn-primary btn-sm" href="/student/clearance">Request clearance</a>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="progress" role="progressbar" aria-valuenow="<%= r.percent %>" aria-valuemin="0" aria-valuemax="100">
+        <span style="width: <%= r.percent %>%"></span>
+      </div>
+      <div class="progress-meta" style="margin-bottom:12px">
+        <span><%= r.approved %> of <%= r.total %> signatures</span><span><%= r.percent %>%</span>
+      </div>
+      <%- include('_items', { items: items }) %>
+      <div class="actions" style="margin-top:14px">
+        <a class="btn btn-primary btn-sm" href="/student/clearance/<%= r.id %>">View full clearance</a>
+      </div>
+    <% } %>
+  </section>
+
+  <div>
+    <section class="card">
+      <div class="card-head">
+        <div><h3>Recent notifications</h3></div>
+        <a class="link-more" href="/student/notifications">View all</a>
+      </div>
+      <% if (!notifications.length) { %>
+        <div class="empty"><p>You have no notifications yet.</p></div>
+      <% } else { %>
+        <ul class="notif-list">
+          <% notifications.forEach(function (n) { %>
+            <li class="notif compact<%= n.is_read ? '' : ' unread' %>">
+              <div class="notif-body">
+                <strong><%= n.title %></strong>
+                <small><%= fmtDateTime(n.created_at) %></small>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+
+    <section class="card">
+      <h3>Quick actions</h3>
+      <p class="card-sub">Jump to what you need.</p>
+      <div class="actions">
+        <a class="btn btn-outline btn-sm" href="/student/subjects">My subjects</a>
+        <a class="btn btn-outline btn-sm" href="/student/clearance">My clearance</a>
+        <a class="btn btn-outline btn-sm" href="/student/profile">My profile</a>
+      </div>
+    </section>
+  </div>
+</div>
+
+<%- include('../layouts/app-bottom') %>

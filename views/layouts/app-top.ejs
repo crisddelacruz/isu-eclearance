@@ -1,0 +1,110 @@
+<%- include('../partials/head', { title: title, bodyClass: 'app-body', extraCss: ['/css/app.css', '/css/pages.css'] }) %>
+<%
+  const role = currentUser.role;
+  const unread = (typeof unreadCount !== 'undefined') ? unreadCount : 0;
+  const NAV = {
+    student: [
+      { key: 'dashboard',     label: 'Dashboard',     href: '/student/dashboard',     icon: 'home' },
+      { key: 'clearance',     label: 'My Clearance',  href: '/student/clearance',     icon: 'file' },
+      { key: 'subjects',      label: 'My Subjects',   href: '/student/subjects',      icon: 'clipboard' },
+      { key: 'notifications', label: 'Notifications', href: '/student/notifications', icon: 'bell', badge: unread },
+      { key: 'profile',       label: 'My Profile',    href: '/student/profile',       icon: 'user' },
+    ],
+    signatory: [
+      { key: 'dashboard', label: 'Dashboard',        href: '/signatory/dashboard', icon: 'home' },
+      { key: 'pending',   label: 'Pending Requests', href: '/signatory/requests',  icon: 'clock', soon: true },
+      { key: 'history',   label: 'Signed History',   href: '/signatory/history',   icon: 'checksq', soon: true },
+      { key: 'signature', label: 'My E-Signature',   href: '/signatory/signature', icon: 'pen', soon: true },
+      { key: 'profile',   label: 'My Profile',       href: '/signatory/profile',   icon: 'user', soon: true },
+    ],
+    admin: [
+      { key: 'dashboard', label: 'Dashboard',      href: '/admin/dashboard', icon: 'home' },
+      { key: 'users',     label: 'Users',          href: '/admin/users',     icon: 'users', soon: true },
+      { key: 'offices',   label: 'Offices',        href: '/admin/offices',   icon: 'building', soon: true },
+      { key: 'terms',     label: 'Academic Terms', href: '/admin/terms',     icon: 'calendar', soon: true },
+      { key: 'reports',   label: 'Reports',        href: '/admin/reports',   icon: 'chart', soon: true },
+      { key: 'audit',     label: 'Audit Logs',     href: '/admin/audit',     icon: 'clipboard', soon: true },
+      { key: 'settings',  label: 'Settings',       href: '/admin/settings',  icon: 'sliders', soon: true },
+    ],
+  };
+  const items = NAV[role] || [];
+  const activeKey = (typeof active !== 'undefined') ? active : '';
+  const initials = ((currentUser.first_name || '?')[0] + (currentUser.last_name || '')[0]).toUpperCase();
+  const roleLabel = role === 'student' ? 'Student'
+                  : role === 'admin' ? 'Administrator'
+                  : (currentUser.office_name || 'Signatory');
+%>
+
+<div class="app">
+  <div class="sb-overlay" id="sbOverlay"></div>
+
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <a class="sb-brand" href="/">
+      <img src="/images/isu-logo.jpg" alt="ISU seal" />
+      <span><strong>ISU eClearance</strong><small>Isabela State University</small></span>
+    </a>
+
+    <p class="sb-label">Menu</p>
+    <nav class="sb-nav">
+      <% items.forEach(function (it) { %>
+        <% if (it.soon) { %>
+          <span class="sb-link is-soon" title="Coming in a later phase">
+            <%- icon(it.icon) %><span><%= it.label %></span><em>Soon</em>
+          </span>
+        <% } else { %>
+          <a class="sb-link<%= activeKey === it.key ? ' active' : '' %>" href="<%= it.href %>"
+             <%= activeKey === it.key ? 'aria-current="page"' : '' %>>
+            <%- icon(it.icon) %><span><%= it.label %></span>
+            <% if (it.badge > 0) { %><em class="sb-badge"><%= it.badge > 99 ? '99+' : it.badge %></em><% } %>
+          </a>
+        <% } %>
+      <% }) %>
+    </nav>
+
+    <div class="sb-user">
+      <span class="avatar"><%= initials %></span>
+      <span class="sb-user-text">
+        <strong><%= currentUser.first_name %> <%= currentUser.last_name %></strong>
+        <small><%= roleLabel %></small>
+      </span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn mobile-only" id="sbToggle" type="button" aria-label="Open menu" aria-controls="sidebar">
+        <%- icon('menu') %>
+      </button>
+      <h2 class="topbar-title"><%= title %></h2>
+
+      <% if (role === 'student') { %>
+        <a class="icon-btn bell" href="/student/notifications" aria-label="Notifications (<%= unread %> unread)">
+          <%- icon('bell') %>
+          <% if (unread > 0) { %><span class="bell-count"><%= unread > 99 ? '99+' : unread %></span><% } %>
+        </a>
+      <% } %>
+
+      <div class="user-menu">
+        <button class="user-btn" id="userBtn" type="button" aria-haspopup="true" aria-expanded="false">
+          <span class="avatar sm"><%= initials %></span>
+          <span class="user-btn-text">
+            <strong><%= currentUser.first_name %></strong>
+            <small><%= roleLabel %></small>
+          </span>
+          <%- icon('chevron', 'chev') %>
+        </button>
+        <div class="menu-pop" id="userMenu" hidden>
+          <div class="menu-head">
+            <strong><%= currentUser.first_name %> <%= currentUser.last_name %></strong>
+            <small><%= currentUser.email %></small>
+          </div>
+          <form method="post" action="/logout">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button type="submit" class="menu-item"><%- icon('logout') %> Log out</button>
+          </form>
+        </div>
+      </div>
+    </header>
+
+    <main class="content" id="content">
+      <%- include('../partials/flash') %>

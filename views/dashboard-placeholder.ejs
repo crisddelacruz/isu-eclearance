@@ -1,0 +1,70 @@
+<%- include('layouts/app-top', { title: title, active: 'dashboard' }) %>
+
+<section class="welcome">
+  <h1>Welcome, <%= currentUser.first_name %>!</h1>
+  <p>
+    <% if (currentUser.role === 'student') { %>
+      Track your clearance, see which offices have signed, and download your finished clearance.
+    <% } else if (currentUser.role === 'signatory') { %>
+      Review student requests, approve with your e-signature, and keep a record of everything you sign.
+    <% } else { %>
+      Manage users, offices, academic terms, and monitor clearance progress across the university.
+    <% } %>
+  </p>
+  <span class="badge badge-<%= currentUser.role %>"><%= currentUser.role %></span>
+</section>
+
+<div class="stat-grid">
+  <div class="stat"><span class="stat-ic green"><%- icon('checkc') %></span><div><strong>0</strong><span>Approved</span></div></div>
+  <div class="stat"><span class="stat-ic gold"><%- icon('clock') %></span><div><strong>0</strong><span>Pending</span></div></div>
+  <div class="stat"><span class="stat-ic red"><%- icon('file') %></span><div><strong>0</strong><span>Rejected</span></div></div>
+  <div class="stat"><span class="stat-ic blue"><%- icon('bell') %></span><div><strong>0</strong><span>Notifications</span></div></div>
+</div>
+
+<section class="card">
+  <h3>Your account</h3>
+  <p class="card-sub"><%= phaseNote %></p>
+  <dl class="info">
+    <dt>Full name</dt>
+    <dd><%= currentUser.first_name %> <%= currentUser.middle_name || '' %> <%= currentUser.last_name %> <%= currentUser.suffix || '' %></dd>
+    <dt>Email</dt><dd><%= currentUser.email %></dd>
+    <dt>ID number</dt><dd><%= currentUser.id_number || '—' %></dd>
+    <% if (currentUser.role === 'student') { %>
+      <dt>College</dt><dd><%= currentUser.college_name %></dd>
+      <dt>Program</dt><dd><%= currentUser.program_name %></dd>
+      <dt>Year level</dt><dd><%= currentUser.year_level %></dd>
+    <% } else { %>
+      <dt>Position</dt><dd><%= currentUser.position_title || '—' %></dd>
+      <% if (currentUser.office_name) { %><dt>Office</dt><dd><%= currentUser.office_name %></dd><% } %>
+    <% } %>
+  </dl>
+</section>
+
+<section class="card">
+  <h3>Design system preview</h3>
+  <p class="card-sub">Status pills, buttons, and tables you will see throughout the system.</p>
+
+  <div class="row" style="margin-bottom:18px">
+    <span class="pill pill-pending">Pending</span>
+    <span class="pill pill-approved">Approved</span>
+    <span class="pill pill-rejected">Rejected</span>
+    <span class="pill pill-progress">In progress</span>
+  </div>
+  <div class="row" style="margin-bottom:18px">
+    <button class="btn btn-primary btn-sm" type="button">Primary</button>
+    <button class="btn btn-outline btn-sm" type="button">Outline</button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Office</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody>
+        <tr><td>University Library</td><td><span class="pill pill-approved">Approved</span></td><td>—</td></tr>
+        <tr><td>Cashier's Office</td><td><span class="pill pill-pending">Pending</span></td><td>—</td></tr>
+        <tr><td>College Dean</td><td><span class="pill pill-rejected">Rejected</span></td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include('layouts/app-bottom') %>

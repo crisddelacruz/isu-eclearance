@@ -1,0 +1,74 @@
+<%- include('../layouts/app-top', { title: title, active: 'clearance' }) %>
+
+<div class="page-head">
+  <h1>My Clearance</h1>
+  <p>Request a clearance and follow its progress.</p>
+</div>
+
+<section class="card">
+  <h3>Request a new clearance</h3>
+  <p class="card-sub">
+    <% if (term) { %>Term: <%= term.school_year %>, <%= term.semester %> (deadline <%= fmtDate(term.clearance_deadline) %>)
+    <% } else { %>No academic term is active right now.<% } %>
+  </p>
+
+  <% if (!term) { %>
+    <div class="lock-note">Clearance requests are closed until the administrator sets an active term.</div>
+  <% } else { %>
+    <% if (subjectCount === 0) { %>
+      <div class="lock-note">
+        You have no subjects for this term yet. Each subject needs an instructor's signature.
+        <a href="/student/subjects">Add your subjects first</a>.
+      </div>
+    <% } %>
+
+    <form method="post" action="/student/clearance/request" data-once novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <div class="field" style="max-width:420px">
+        <label for="purpose">Purpose of clearance</label>
+        <select class="input" id="purpose" name="purpose" required>
+          <option value="">Select a purpose</option>
+          <% purposes.forEach(function (p) { const t = taken.indexOf(p) !== -1; %>
+            <option value="<%= p %>" <%= t ? 'disabled' : '' %>><%= p %><%= t ? ' (already requested)' : '' %></option>
+          <% }) %>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">Request clearance</button>
+    </form>
+  <% } %>
+</section>
+
+<section class="card">
+  <h3>My clearance requests</h3>
+  <p class="card-sub">All the requests you have made.</p>
+
+  <% if (!requests.length) { %>
+    <div class="empty">
+      <%- icon('file') %>
+      <h4>No requests yet</h4>
+      <p>Your clearance requests will appear here.</p>
+    </div>
+  <% } else { %>
+    <% requests.forEach(function (r) { %>
+      <article class="req">
+        <div class="req-top">
+          <div>
+            <h4><%= r.purpose %></h4>
+            <small><%= r.reference_no %> &middot; <%= r.school_year %>, <%= r.semester %></small>
+            <small>Requested <%= fmtDate(r.created_at) %></small>
+          </div>
+          <span class="pill <%= pillClass(r.status) %>"><%= statusLabel(r.status) %></span>
+        </div>
+        <div>
+          <div class="progress"><span style="width: <%= r.percent %>%"></span></div>
+          <div class="progress-meta"><span><%= r.approved %> of <%= r.total %> signatures</span><span><%= r.percent %>%</span></div>
+        </div>
+        <div class="actions">
+          <a class="btn btn-primary btn-sm" href="/student/clearance/<%= r.id %>">View details</a>
+        </div>
+      </article>
+    <% }) %>
+  <% } %>
+</section>
+
+<%- include('../layouts/app-bottom') %>

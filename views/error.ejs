@@ -1,0 +1,11 @@
+<%- include('partials/head', { title: title, bodyClass: 'temp-page' }) %>
+
+<main class="temp-card">
+  <img class="temp-logo" src="/images/isu-logo.jpg" alt="ISU seal" />
+  <p class="err-code"><%= code %></p>
+  <h1><%= heading %></h1>
+  <p class="sub"><%= message %></p>
+  <a class="btn btn-primary" href="/">Back to home</a>
+</main>
+
+<%- include('partials/foot') %>

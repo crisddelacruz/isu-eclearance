@@ -1,0 +1,77 @@
+<%- include('../layouts/app-top', { title: title, active: 'profile' }) %>
+<% const initials = ((currentUser.first_name || '?')[0] + (currentUser.last_name || '')[0]).toUpperCase(); %>
+
+<div class="page-head">
+  <h1>My Profile</h1>
+  <p>Your account information.</p>
+</div>
+
+<div class="two-col">
+  <section class="card">
+    <div class="profile-head">
+      <span class="avatar lg"><%= initials %></span>
+      <div>
+        <h3><%= currentUser.first_name %> <%= currentUser.middle_name || '' %> <%= currentUser.last_name %> <%= currentUser.suffix || '' %></h3>
+        <span class="badge badge-student">Student</span>
+      </div>
+    </div>
+
+    <dl class="info">
+      <dt>ID number</dt><dd><%= currentUser.id_number %></dd>
+      <dt>Email</dt><dd><%= currentUser.email %></dd>
+      <dt>College</dt><dd><%= currentUser.college_name %></dd>
+      <dt>Program</dt><dd><%= currentUser.program_name %></dd>
+      <dt>Year level</dt><dd><%= currentUser.year_level %></dd>
+      <dt>Phone</dt><dd><%= currentUser.phone || '—' %></dd>
+      <dt>Last login</dt><dd><%= fmtDateTime(currentUser.last_login_at) %></dd>
+    </dl>
+    <p class="hint">To correct your name, ID number, college, or program, please contact the administrator.</p>
+  </section>
+
+  <div>
+    <section class="card">
+      <h3>Contact number</h3>
+      <p class="card-sub">Optional. Used only by the university.</p>
+      <form method="post" action="/student/profile" data-once novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="field">
+          <label for="phone">Phone number</label>
+          <input class="input" type="text" id="phone" name="phone" value="<%= currentUser.phone || '' %>" placeholder="09XX XXX XXXX" maxlength="20" />
+        </div>
+        <button class="btn btn-primary btn-sm" type="submit">Save</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h3>Change password</h3>
+      <p class="card-sub">Use at least 8 characters, with letters and numbers.</p>
+      <form method="post" action="/student/password" data-once novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="field">
+          <label for="current_password">Current password</label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="current_password" name="current_password" autocomplete="current-password" required />
+            <button type="button" class="pw-toggle" data-target="current_password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="new_password">New password</label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="new_password" name="new_password" autocomplete="new-password" required />
+            <button type="button" class="pw-toggle" data-target="new_password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="confirm_password">Confirm new password</label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required />
+            <button type="button" class="pw-toggle" data-target="confirm_password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" type="submit">Change password</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<%- include('../layouts/app-bottom') %>

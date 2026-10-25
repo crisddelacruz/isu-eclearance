@@ -1,20 +1,252 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= appName %> | <%= title %></title>
-  <link rel="icon" href="/images/isu-logo.jpg" />
-  <link rel="stylesheet" href="/css/style.css" />
-</head>
-<body class="setup-body">
-  <main class="setup-card">
-    <img src="/images/isu-logo.jpg" alt="Isabela State University Seal" class="setup-logo" />
-    <h1><%= appName %></h1>
-    <p class="setup-sub">Isabela State University Online Clearance System</p>
-    <div class="setup-status">
-      <span class="dot"></span> Phase 1 complete. Server is running.
+<%- include('partials/head', { title: 'Online Clearance System', bodyClass: 'landing', extraCss: '/css/landing.css' }) %>
+
+<header class="l-nav">
+  <div class="container inner">
+    <a class="l-brand" href="/">
+      <img src="/images/isu-logo.jpg" alt="Isabela State University seal" />
+      <span><strong>ISU eClearance</strong><small>Isabela State University</small></span>
+    </a>
+
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks">
+      <%- icon('menu') %>
+    </button>
+
+    <nav class="l-links" id="navLinks" aria-label="Primary">
+      <a class="l-link" href="#how">How it works</a>
+      <a class="l-link" href="#features">Features</a>
+      <a class="l-link" href="#signatories">Signatories</a>
+      <a class="l-link" href="#colleges">Colleges</a>
+      <a class="l-link" href="#faq">FAQ</a>
+      <a class="btn btn-outline btn-sm" href="/login">Log in</a>
+      <a class="btn btn-primary btn-sm" href="/register">Get started</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="chip"><i></i> Isabela State University Online Clearance</span>
+        <h1>Clearance <span>without the long lines.</span></h1>
+        <p class="lead">
+          Request your clearance, get it signed electronically by every office, and download the
+          finished copy with e-signatures. No more walking from office to office.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-gold btn-lg" href="/register">Create student account <%- icon('arrow') %></a>
+          <a class="btn btn-ghost btn-lg" href="/login">Log in</a>
+        </div>
+        <p class="hero-note">Instructors and staff: your account is created by the university administrator. <a href="/login">Log in here</a>.</p>
+      </div>
+
+      <div class="doc reveal" aria-label="Sample clearance preview">
+        <div class="doc-head">
+          <img src="/images/isu-logo.jpg" alt="" />
+          <div><small>Isabela State University</small><strong>Student Clearance</strong></div>
+        </div>
+        <div class="doc-student"><b>Juan S. Dela Cruz</b>BS Information Technology &middot; 3rd Year</div>
+        <div class="doc-row"><span>Subject Instructor</span><span class="sig">J. Reyes</span></div>
+        <div class="doc-row"><span>University Library</span><span class="sig">M. Santos</span></div>
+        <div class="doc-row"><span>Cashier's Office</span><span class="sig">A. Ramos</span></div>
+        <div class="doc-row"><span>College Dean</span><span class="sig">C. San Jose</span></div>
+        <div class="doc-row"><span>University Registrar</span><span class="wait">Pending</span></div>
+        <div class="doc-qr"><%- icon('qr') %> Verified by QR code</div>
+      </div>
     </div>
-  </main>
-</body>
-</html>
+  </section>
+
+  <!-- ============ STATS ============ -->
+  <section class="stats">
+    <div class="container">
+      <div class="stats-grid reveal">
+        <div><strong><%= colleges.length %></strong><span>Colleges &amp; schools</span></div>
+        <div><strong><%= programCount %></strong><span>Degree programs</span></div>
+        <div><strong><%= offices.length %></strong><span>Signing offices</span></div>
+        <div><strong>24/7</strong><span>Online access</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="section" id="how">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">How it works</span>
+        <h2>Four simple steps to a signed clearance</h2>
+        <p>The whole process happens online, from request to download.</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><h3>Create your account</h3><p>Register with your student ID, college, and program. It takes about two minutes.</p></div>
+        <div class="step reveal"><h3>Request clearance</h3><p>Choose your purpose, such as end of semester or graduation. The system prepares your signing list.</p></div>
+        <div class="step reveal"><h3>Offices sign online</h3><p>Each signatory reviews your record and approves with their e-signature. You can follow the progress live.</p></div>
+        <div class="step reveal"><h3>Download your clearance</h3><p>When every office has signed, download your clearance as a PDF with all e-signatures.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section class="section alt" id="features">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Features</span>
+        <h2>Built to end the paper chase</h2>
+        <p>Everything students and signatories need, in one place.</p>
+      </div>
+      <div class="features">
+        <div class="feature reveal"><div class="ic-box"><%- icon('pen') %></div><h3>E-signatures</h3><p>Signatories upload their signature once. It is placed on the clearance automatically when they approve.</p></div>
+        <div class="feature reveal"><div class="ic-box"><%- icon('clock') %></div><h3>Live tracking</h3><p>See which offices have signed, which are pending, and which need action, at any time.</p></div>
+        <div class="feature reveal"><div class="ic-box"><%- icon('download') %></div><h3>PDF download</h3><p>Download your completed clearance with e-signatures, ready to print or submit.</p></div>
+        <div class="feature reveal"><div class="ic-box"><%- icon('qr') %></div><h3>QR verification</h3><p>Every clearance carries a unique code so anyone can check that it is genuine.</p></div>
+        <div class="feature reveal"><div class="ic-box"><%- icon('bell') %></div><h3>Notifications</h3><p>Get notified when an office signs or returns your request with remarks.</p></div>
+        <div class="feature reveal"><div class="ic-box"><%- icon('phone') %></div><h3>Works on any device</h3><p>Use your phone, tablet, or computer. No installation needed.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SIGNATORIES ============ -->
+  <section class="section" id="signatories">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Clearance flow</span>
+        <h2>Offices that sign your clearance</h2>
+        <p>Your clearance moves through these offices. Each one confirms you have no pending obligations.</p>
+      </div>
+      <ol class="flow">
+        <% offices.forEach(function (o) { %>
+          <li class="reveal"><div><strong><%= o.name %></strong><span><%= o.description %></span></div></li>
+        <% }) %>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ ROLES ============ -->
+  <section class="section alt">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">For everyone</span>
+        <h2>One system, three kinds of users</h2>
+      </div>
+      <div class="roles">
+        <div class="role reveal">
+          <%- icon('user') %>
+          <h3>Students</h3>
+          <ul>
+            <li>Request clearance online</li>
+            <li>Track every signature</li>
+            <li>Download the signed PDF</li>
+          </ul>
+        </div>
+        <div class="role reveal">
+          <%- icon('pen') %>
+          <h3>Instructors &amp; signatories</h3>
+          <ul>
+            <li>Upload your e-signature once</li>
+            <li>Approve or return requests with remarks</li>
+            <li>Keep a history of everything signed</li>
+          </ul>
+        </div>
+        <div class="role reveal">
+          <%- icon('shield') %>
+          <h3>Administrators</h3>
+          <ul>
+            <li>Manage users, offices, and terms</li>
+            <li>Monitor clearance progress</li>
+            <li>View reports and audit logs</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COLLEGES ============ -->
+  <section class="section" id="colleges">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Colleges</span>
+        <h2>Serving every college of ISU</h2>
+        <p>Contact your college for questions about your clearance.</p>
+      </div>
+      <div class="colleges">
+        <% colleges.forEach(function (c) { %>
+          <article class="college reveal">
+            <div class="code"><%= c.code %></div>
+            <div>
+              <h3><%= c.name %></h3>
+              <p><%= c.dean_name %></p>
+              <% if (c.email) { %><a href="mailto:<%= c.email %>"><%= c.email %></a><% } %>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section alt" id="faq">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">FAQ</span>
+        <h2>Frequently asked questions</h2>
+      </div>
+      <div class="faq">
+        <details class="reveal"><summary>Who can create an account?</summary><p>Students can register on their own. Instructors, staff, and other signatories receive their accounts from the university administrator.</p></details>
+        <details class="reveal"><summary>What happens if an office rejects my request?</summary><p>The office adds a remark that explains what you need to settle. Once you have resolved it, you can ask for the office to review it again.</p></details>
+        <details class="reveal"><summary>How do I know my clearance is genuine?</summary><p>Every completed clearance includes a unique reference number and QR code that can be checked against the system.</p></details>
+        <details class="reveal"><summary>I forgot my password. What should I do?</summary><p>Contact your college or the system administrator, who can reset your password.</p></details>
+        <details class="reveal"><summary>Do I still need to print my clearance?</summary><p>You can download the signed PDF at any time. Print it only if the receiving office asks for a paper copy.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CALL TO ACTION ============ -->
+  <section class="section cta">
+    <div class="container">
+      <div class="cta-box reveal">
+        <h2>Ready to skip the long lines?</h2>
+        <p>Create your account and start your clearance today.</p>
+        <div class="hero-cta">
+          <a class="btn btn-gold btn-lg" href="/register">Create student account</a>
+          <a class="btn btn-ghost btn-lg" href="/login">Log in</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="l-foot">
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <a class="l-brand" href="/">
+          <img src="/images/isu-logo.jpg" alt="" />
+          <span><strong>ISU eClearance</strong><small>Isabela State University</small></span>
+        </a>
+        <p>The online clearance system of Isabela State University, Echague, Isabela, Philippines.</p>
+      </div>
+      <div>
+        <h4>Quick links</h4>
+        <ul>
+          <li><a href="/login">Log in</a></li>
+          <li><a href="/register">Create student account</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:ccsict@isu.edu.ph">ccsict@isu.edu.ph</a></li>
+          <li>Echague, Isabela</li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>&copy; <%= new Date().getFullYear() %> Isabela State University. All rights reserved.</span>
+      <span>Founded 1978</span>
+    </div>
+  </div>
+</footer>
+
+<%- include('partials/foot') %>

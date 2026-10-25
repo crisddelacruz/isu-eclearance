@@ -1,0 +1,42 @@
+<%- include('../layouts/app-top', { title: title, active: 'notifications' }) %>
+
+<div class="page-head">
+  <h1>Notifications</h1>
+  <p>Updates about your clearance.</p>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <div><h3>Your notifications</h3><p class="card-sub">Showing your latest 50.</p></div>
+    <% if (unreadCount > 0) { %>
+      <form class="inline-form" method="post" action="/student/notifications/read-all">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <button class="btn btn-outline btn-sm" type="submit">Mark all as read</button>
+      </form>
+    <% } %>
+  </div>
+
+  <% if (!list.length) { %>
+    <div class="empty"><%- icon('bell') %><h4>You're all caught up</h4><p>New updates will show up here.</p></div>
+  <% } else { %>
+    <ul class="notif-list">
+      <% list.forEach(function (n) { %>
+        <li class="notif<%= n.is_read ? '' : ' unread' %>">
+          <div class="notif-body">
+            <strong><%= n.title %></strong>
+            <% if (n.message) { %><p><%= n.message %></p><% } %>
+            <small><%= fmtDateTime(n.created_at) %></small>
+          </div>
+          <% if (!n.is_read || n.link) { %>
+            <form class="inline-form" method="post" action="/student/notifications/<%= n.id %>/read">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <button class="btn btn-outline btn-sm" type="submit"><%= n.link ? 'Open' : 'Mark read' %></button>
+            </form>
+          <% } %>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<%- include('../layouts/app-bottom') %>

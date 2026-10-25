@@ -1,0 +1,89 @@
+/* ISU eClearance: shared styles for dashboard pages (loaded after app.css) */
+
+/* ---------- Extra buttons ---------- */
+.btn-sm { padding: 8px 16px; font-size: .88rem; border-radius: 8px; }
+.btn-danger { background: #fff; color: #b42318; border-color: #fda29b; }
+.btn-danger:hover { background: #fef3f2; color: #912018; }
+.inline-form { display: inline; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions.end { justify-content: flex-end; }
+
+/* ---------- Notification bell + sidebar badge ---------- */
+.bell { position: relative; text-decoration: none; }
+.bell-count {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 999px; background: var(--red); color: #fff; font-size: .68rem; font-weight: 800;
+  display: grid; place-items: center; border: 2px solid #fff;
+}
+.sb-link em.sb-badge { background: var(--red); color: #fff; }
+
+/* ---------- Progress bar ---------- */
+.progress { height: 10px; background: var(--green-100); border-radius: 999px; overflow: hidden; }
+.progress > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--green-700), #2fa866); transition: width .6s ease; }
+.progress-meta { display: flex; justify-content: space-between; gap: 10px; font-size: .84rem; color: var(--muted); margin-top: 6px; font-weight: 600; }
+
+/* ---------- Layout helpers ---------- */
+.two-col { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; align-items: start; }
+.two-col > * { min-width: 0; }
+.two-col .card { margin-bottom: 0; }
+.two-col > div > .card + .card { margin-top: 24px; }
+.meta-row { display: flex; gap: 14px 32px; flex-wrap: wrap; }
+.meta-row small { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; }
+.meta-row strong { color: var(--ink); }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.card-head h3 { margin: 0; }
+.card-head .card-sub { margin: 2px 0 0; }
+.link-more { font-size: .88rem; }
+
+.empty .ic { width: 2.4em; height: 2.4em; color: var(--green-700); opacity: .55; margin: 0 auto 10px; display: block; }
+.empty h4 { color: var(--green-800); margin-bottom: 4px; }
+.empty .actions { justify-content: center; margin-top: 14px; }
+
+/* ---------- Request cards ---------- */
+.req { border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 12px; margin-bottom: 14px; background: #fff; }
+.req:last-child { margin-bottom: 0; }
+.req-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+.req-top h4 { color: var(--green-800); font-size: 1.05rem; }
+.req-top small { color: var(--muted); display: block; }
+
+/* ---------- Signing list (timeline) ---------- */
+.track { list-style: none; }
+.track li { display: grid; grid-template-columns: 40px 1fr auto; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); align-items: start; }
+.track li:first-child { border-top: 0; padding-top: 4px; }
+.t-dot { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .85rem; }
+.t-dot.approved { background: #dcf5e6; color: #05603a; }
+.t-dot.pending  { background: #fff4cc; color: #7a5d00; }
+.t-dot.rejected { background: #fde7e8; color: #a3161b; }
+.t-main { min-width: 0; }
+.t-main > strong { display: block; color: var(--ink); }
+.t-main small { display: block; color: var(--muted); font-size: .84rem; }
+.t-remark { margin-top: 8px; background: #fef3f2; border-left: 4px solid var(--red); padding: 8px 12px; border-radius: 6px; font-size: .88rem; color: #912018; }
+.t-side { text-align: right; }
+
+/* ---------- Notifications ---------- */
+.notif-list { list-style: none; display: grid; gap: 10px; }
+.notif { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.notif.unread { background: var(--green-50); border-color: #b7dcc8; border-left: 5px solid var(--green-700); }
+.notif-body { flex: 1; min-width: 0; }
+.notif-body strong { display: block; color: var(--green-800); }
+.notif-body p { color: #34453c; font-size: .92rem; }
+.notif-body small { color: var(--muted); font-size: .78rem; }
+.notif.compact { padding: 10px 12px; }
+
+/* ---------- Profile ---------- */
+.profile-head { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; }
+.avatar.lg { width: 72px; height: 72px; font-size: 1.6rem; background: var(--green-700); color: #fff; }
+.profile-head h3 { font-size: 1.3rem; margin: 0 0 4px; }
+
+.lock-note { background: #fff9e0; border: 1px solid #f0e0a0; color: #6b5200; border-radius: 10px; padding: 12px 14px; font-size: .9rem; margin-bottom: 16px; }
+.alert a { color: inherit; text-decoration: underline; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .two-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .track li { grid-template-columns: 40px 1fr; }
+  .t-side { grid-column: 2; text-align: left; }
+  .profile-head { flex-direction: column; align-items: flex-start; }
+}

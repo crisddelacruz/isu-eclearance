@@ -1,0 +1,140 @@
+<%- include('../partials/head', { title: 'Create account', bodyClass: 'auth-page' }) %>
+<%
+  const bad = (k) => (errors[k] ? ' is-invalid' : '');
+  const msg = (k) => (errors[k] ? '<p class="field-error">' + errors[k] + '</p>' : '');
+  const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', '6th Year'];
+%>
+
+<div class="auth">
+  <%- include('../partials/auth-aside') %>
+
+  <main class="auth-main">
+    <div class="auth-card wide">
+      <h1>Create your student account</h1>
+      <p class="sub">Fill in your details exactly as they appear in your school records.</p>
+
+      <% if (Object.keys(errors).length) { %>
+        <div class="alert alert-error" role="alert">Please fix the highlighted fields below.</div>
+      <% } %>
+
+      <form method="post" action="/register" novalidate data-once>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+        <h3 class="section-title">Student information</h3>
+
+        <div class="field">
+          <label for="id_number">Student ID number</label>
+          <input class="input<%= bad('id_number') %>" type="text" id="id_number" name="id_number"
+                 value="<%= values.id_number || '' %>" placeholder="e.g. 2026-00123" autocomplete="off" required />
+          <%- msg('id_number') %>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="first_name">First name</label>
+            <input class="input<%= bad('first_name') %>" type="text" id="first_name" name="first_name"
+                   value="<%= values.first_name || '' %>" autocomplete="given-name" required />
+            <%- msg('first_name') %>
+          </div>
+          <div class="field">
+            <label for="middle_name">Middle name <span class="opt">(optional)</span></label>
+            <input class="input<%= bad('middle_name') %>" type="text" id="middle_name" name="middle_name"
+                   value="<%= values.middle_name || '' %>" autocomplete="additional-name" />
+            <%- msg('middle_name') %>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="last_name">Last name</label>
+            <input class="input<%= bad('last_name') %>" type="text" id="last_name" name="last_name"
+                   value="<%= values.last_name || '' %>" autocomplete="family-name" required />
+            <%- msg('last_name') %>
+          </div>
+          <div class="field">
+            <label for="suffix">Suffix <span class="opt">(optional)</span></label>
+            <input class="input<%= bad('suffix') %>" type="text" id="suffix" name="suffix"
+                   value="<%= values.suffix || '' %>" placeholder="Jr., III" />
+            <%- msg('suffix') %>
+          </div>
+        </div>
+
+        <h3 class="section-title">Academic information</h3>
+
+        <div class="field">
+          <label for="college_id">College</label>
+          <select class="input<%= bad('college_id') %>" id="college_id" name="college_id" required>
+            <option value="">Select your college</option>
+            <% colleges.forEach(function (c) { %>
+              <option value="<%= c.id %>" <%= String(values.college_id) === String(c.id) ? 'selected' : '' %>>
+                <%= c.name %>
+              </option>
+            <% }) %>
+          </select>
+          <%- msg('college_id') %>
+        </div>
+
+        <div class="field">
+          <label for="program_id">Program</label>
+          <select class="input<%= bad('program_id') %>" id="program_id" name="program_id"
+                  data-selected="<%= values.program_id || '' %>" required>
+            <option value="">Select your college first</option>
+            <% programs.forEach(function (p) { %>
+              <option value="<%= p.id %>" data-college="<%= p.college_id %>"><%= p.name %></option>
+            <% }) %>
+          </select>
+          <%- msg('program_id') %>
+        </div>
+
+        <div class="field">
+          <label for="year_level">Year level</label>
+          <select class="input<%= bad('year_level') %>" id="year_level" name="year_level" required>
+            <option value="">Select year level</option>
+            <% years.forEach(function (y, i) { %>
+              <option value="<%= i + 1 %>" <%= String(values.year_level) === String(i + 1) ? 'selected' : '' %>><%= y %></option>
+            <% }) %>
+          </select>
+          <%- msg('year_level') %>
+        </div>
+
+        <h3 class="section-title">Account</h3>
+
+        <div class="field">
+          <label for="email">Email address</label>
+          <input class="input<%= bad('email') %>" type="email" id="email" name="email"
+                 value="<%= values.email || '' %>" autocomplete="email" required />
+          <%- msg('email') %>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="pw-wrap">
+              <input class="input<%= bad('password') %>" type="password" id="password" name="password"
+                     autocomplete="new-password" required />
+              <button type="button" class="pw-toggle" data-target="password" aria-pressed="false">Show</button>
+            </div>
+            <%- msg('password') %>
+            <p class="hint">At least 8 characters, with letters and numbers.</p>
+          </div>
+          <div class="field">
+            <label for="confirm_password">Confirm password</label>
+            <div class="pw-wrap">
+              <input class="input<%= bad('confirm_password') %>" type="password" id="confirm_password"
+                     name="confirm_password" autocomplete="new-password" required />
+              <button type="button" class="pw-toggle" data-target="confirm_password" aria-pressed="false">Show</button>
+            </div>
+            <%- msg('confirm_password') %>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit">Create account</button>
+      </form>
+
+      <p class="switch">Already have an account? <a href="/login">Log in</a></p>
+      <p class="hint center">Instructors, staff, and signatories: your account is created by the university administrator.</p>
+    </div>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>

@@ -1,0 +1,58 @@
+<%- include('../partials/head', { title: 'Log in', bodyClass: 'auth-page' }) %>
+
+<div class="auth">
+  <%- include('../partials/auth-aside') %>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <h1>Welcome back</h1>
+      <p class="sub">Log in to your ISU eClearance account.</p>
+
+      <% if (loggedOut) { %>
+        <div class="alert alert-info" role="status">You have been logged out.</div>
+      <% } %>
+      <% if (formError) { %>
+        <div class="alert alert-error" role="alert"><%= formError %></div>
+      <% } %>
+      <%- include('../partials/flash') %>
+
+      <form method="post" action="/login" novalidate data-once>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+        <div class="field">
+          <label for="identifier">Email or ID number</label>
+          <input class="input" type="text" id="identifier" name="identifier"
+                 value="<%= values.identifier || '' %>" autocomplete="username" autofocus required />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="password" name="password"
+                   autocomplete="current-password" required />
+            <button type="button" class="pw-toggle" data-target="password" aria-pressed="false">Show</button>
+          </div>
+          <p class="hint">Forgot your password? Please contact your college or the system administrator.</p>
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit">Log in</button>
+      </form>
+
+      <p class="switch">New student? <a href="/register">Create an account</a></p>
+
+      <% if (isDev) { %>
+        <details class="demo">
+          <summary>Demo accounts (development only)</summary>
+          <table>
+            <tr><td>Admin</td><td>admin@isu-demo.local</td><td>Admin@12345</td></tr>
+            <tr><td>Student</td><td>student@isu-demo.local</td><td>Demo@12345</td></tr>
+            <tr><td>Library</td><td>library@isu-demo.local</td><td>Demo@12345</td></tr>
+            <tr><td>Dean</td><td>dean.ccsict@isu-demo.local</td><td>Demo@12345</td></tr>
+          </table>
+        </details>
+      <% } %>
+    </div>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %> | <%= appName %></title>
+  <meta name="description" content="ISU eClearance: the online clearance system of Isabela State University. Get your clearance signed electronically and download it as a PDF." />
+  <meta name="theme-color" content="#006a3a" />
+  <link rel="icon" href="/images/isu-logo.jpg" />
+  <script>document.documentElement.className += ' js';</script>
+  <link rel="stylesheet" href="/css/auth.css" />
+  <% var cssFiles = (typeof extraCss !== 'undefined' && extraCss) ? [].concat(extraCss) : []; %>
+  <% cssFiles.forEach(function (href) { %>
+  <link rel="stylesheet" href="<%= href %>" />
+  <% }) %>
+</head>
+<body class="<%= bodyClass %>">
