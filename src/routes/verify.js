@@ -22,9 +22,9 @@ const limiter = rateLimit({
     }),
 });
 
-function findRequestId(code) {
+async function findRequestId(code) {
   if (!CODE_RE.test(code)) return null;
-  const row = db.prepare('SELECT id FROM clearance_requests WHERE verification_code = ?').get(code);
+  const row = await db.get('SELECT id FROM clearance_requests WHERE verification_code = ?', code);
   return row ? row.id : null;
 }
 
@@ -43,23 +43,19 @@ router.get('/verify', limiter, (req, res) => {
 });
 
 // ---------- QR image (public) ----------
-router.get('/verify/:code/qr.png', async (req, res, next) => {
-  try {
-    const code = String(req.params.code || '').toUpperCase();
-    if (!findRequestId(code)) return res.status(404).end();
-    const png = await QRCode.toBuffer(verifyUrlFor(code), { type: 'png', width: 300, margin: 1, errorCorrectionLevel: 'M' });
-    res.set({ 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
-    res.end(png);
-  } catch (err) {
-    next(err);
-  }
+router.get('/verify/:code/qr.png', async (req, res) => {
+  const code = String(req.params.code || '').toUpperCase();
+  if (!(await findRequestId(code))) return res.status(404).end();
+  const png = await QRCode.toBuffer(verifyUrlFor(code), { type: 'png', width: 300, margin: 1, errorCorrectionLevel: 'M' });
+  res.set({ 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
+  res.end(png);
 });
 
 // ---------- Result page (public) ----------
-router.get('/verify/:code', limiter, (req, res) => {
+router.get('/verify/:code', limiter, async (req, res) => {
   const code = String(req.params.code || '').toUpperCase();
-  const id = findRequestId(code);
-  const sheet = id ? sheetFor(id) : null;
+  const id = await findRequestId(code);
+  const sheet = id ? await sheetFor(id) : null;
 
   res.status(sheet ? 200 : 404).render('verify/result', {
     title: 'Verification Result',
