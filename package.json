@@ -14,7 +14,8 @@
     "mail:test": "node src/utils/mail-test.js",
     "check:12b": "node src/utils/check-12b.js",
     "check:12c": "node src/utils/check-12c.js",
-    "check:12d": "node src/utils/check-12d.js"
+    "check:12d": "node src/utils/check-12d.js",
+    "check:12e": "node src/utils/check-12e.js"
   },
   "keywords": [
     "clearance",
@@ -23,18 +24,16 @@
   ],
   "author": "ISU Web Development",
   "license": "ISC",
+  "engines": { "node": "22.x" },
   "type": "commonjs",
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^12.11.1",
-    "better-sqlite3-session-store": "^0.1.0",
     "cookie-session": "^2.1.1",
     "dotenv": "^17.4.2",
     "ejs": "^3.1.10",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
-    "express-session": "^1.19.0",
     "helmet": "^8.3.0",
     "multer": "^2.5.0",
     "nodemailer": "^10.2.1",

@@ -1,6 +1,9 @@
-// Builds the public address that goes inside the QR code.
+// Builds the public address that goes inside the QR code and emails.
 function baseUrl() {
-  const fallback = 'http://localhost:' + (process.env.PORT || 3000);
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL
+    : '';
+  const fallback = vercel || 'http://localhost:' + (process.env.PORT || 3000);
   return String(process.env.APP_URL || fallback).replace(/\/+$/, '');
 }
 
