@@ -1,19 +1,19 @@
 const db = require('../config/database');
 const { fmtDate } = require('./format');
 
+// Today's date in Philippine time (the server may run in UTC).
 function todayStr() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
-function enforced() {
-  const row = db.prepare("SELECT value FROM settings WHERE key = 'enforce_term_dates'").get();
+async function enforced() {
+  const row = await db.get("SELECT value FROM settings WHERE key = 'enforce_term_dates'");
   return !!row && row.value === '1';
 }
 
 // Returns a message for the student if requests are closed, or '' if they may proceed.
-function problem(term) {
-  if (!term || !enforced()) return '';
+async function problem(term) {
+  if (!term || !(await enforced())) return '';
   const t = todayStr();
   if (term.clearance_open_date && t < term.clearance_open_date) {
     return 'Clearance requests open on ' + fmtDate(term.clearance_open_date) + '.';

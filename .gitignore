@@ -1,10 +1,6 @@
 node_modules/
 .env
-data/*.db
-data/*.db-journal
-data/*.db-wal
-data/*.db-shm
-data/signatures/
+data/
 backups/
 public/uploads/signatures/*
 !public/uploads/signatures/.gitkeep

@@ -1,117 +1,74 @@
 require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
 const bcrypt = require('bcryptjs');
-
-// "npm run db:reset" deletes the old database first
-if (process.argv.includes('--reset')) {
-  const dbFile = path.resolve(__dirname, '../..', process.env.DB_PATH || 'data/isu-eclearance.db');
-  for (const f of [dbFile, dbFile + '-wal', dbFile + '-shm', dbFile + '-journal']) {
-    if (fs.existsSync(f)) fs.unlinkSync(f);
-  }
-  console.log('• Old database deleted.');
-}
-
 const db = require('../config/database');
 const data = require('../config/seed-data');
+const baseStatements = require('../config/seed-base');
 
-const idOf = (table, code) => {
-  if (!code) return null;
-  const row = db.prepare(`SELECT id FROM ${table} WHERE code = ?`).get(code);
-  return row ? row.id : null;
-};
+// Children first, so foreign keys never complain.
+const DROP_ORDER = [
+  'audit_logs', 'notifications', 'clearance_items', 'clearance_requests', 'enrollments',
+  'password_resets', 'signatures', 'users', 'academic_terms', 'settings', 'offices', 'programs', 'colleges',
+];
 
-const seed = db.transaction(() => {
-  // ---- Colleges ----
-  const insCollege = db.prepare(
-    'INSERT OR IGNORE INTO colleges (code, name, dean_name, email) VALUES (?, ?, ?, ?)'
-  );
-  data.colleges.forEach((c) => insCollege.run(c.code, c.name, c.dean, c.email));
+const USER_SQL = `
+  INSERT OR IGNORE INTO users
+    (role, id_number, email, password_hash, first_name, middle_name, last_name,
+     college_id, program_id, year_level, office_id, position_title, status)
+  VALUES
+    (?, ?, ?, ?, ?, ?, ?,
+     (SELECT id FROM colleges WHERE code = ?), (SELECT id FROM programs WHERE code = ?),
+     ?, (SELECT id FROM offices WHERE code = ?), ?, 'active')`;
 
-  // ---- Programs ----
-  const insProgram = db.prepare(
-    'INSERT OR IGNORE INTO programs (college_id, code, name) VALUES (?, ?, ?)'
-  );
-  data.programs.forEach(([code, name, collegeCode]) => {
-    insProgram.run(idOf('colleges', collegeCode), code, name);
-  });
+async function main() {
+  if (process.argv.includes('--reset')) {
+    if (!db.isFile) throw new Error('--reset only works on a local file database. It is blocked on Turso on purpose.');
+    for (const t of DROP_ORDER) await db.exec('DROP TABLE IF EXISTS ' + t);
+    console.log('• Old tables deleted.');
+  }
+  await db.initSchema();
 
-  // ---- Offices ----
-  const insOffice = db.prepare(
-    'INSERT OR IGNORE INTO offices (code, name, description, scope, sort_order) VALUES (?, ?, ?, ?, ?)'
-  );
-  data.offices.forEach((o) => insOffice.run(o.code, o.name, o.desc, o.scope, o.sort));
-
-  // ---- Academic terms ----
-  const insTerm = db.prepare(
-    `INSERT OR IGNORE INTO academic_terms
-     (school_year, semester, clearance_open_date, clearance_deadline, is_current)
-     VALUES (?, ?, ?, ?, ?)`
-  );
-  data.terms.forEach((t) => insTerm.run(t.school_year, t.semester, t.open, t.deadline, t.current));
-
-  // ---- Settings ----
-  const insSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
-  Object.entries(data.settings).forEach(([k, v]) => insSetting.run(k, v));
-
-  // ---- Demo users ----
-  const insUser = db.prepare(`
-    INSERT OR IGNORE INTO users
-      (role, id_number, email, password_hash, first_name, middle_name, last_name,
-       college_id, program_id, year_level, office_id, position_title, status)
-    VALUES
-      (@role, @id_number, @email, @password_hash, @first_name, @middle_name, @last_name,
-       @college_id, @program_id, @year_level, @office_id, @position_title, 'active')
-  `);
-
+  const S = baseStatements();
+  const add = (sql, args) => S.push({ sql, args });
   const adminHash = bcrypt.hashSync(data.ADMIN_PASSWORD, 10);
   const demoHash = bcrypt.hashSync(data.DEMO_PASSWORD, 10);
 
   const a = data.demoAdmin;
-  insUser.run({
-    role: 'admin', id_number: a.id_number, email: a.email, password_hash: adminHash,
-    first_name: a.first_name, middle_name: null, last_name: a.last_name,
-    college_id: null, program_id: null, year_level: null, office_id: null,
-    position_title: a.position,
-  });
+  add(USER_SQL, ['admin', a.id_number, a.email, adminHash, a.first_name, null, a.last_name,
+    null, null, null, null, a.position]);
 
-  data.demoSignatories.forEach((s) => {
-    insUser.run({
-      role: 'signatory', id_number: s.id_number, email: s.email, password_hash: demoHash,
-      first_name: s.first_name, middle_name: null, last_name: s.last_name,
-      college_id: idOf('colleges', s.college), program_id: idOf('programs', s.program),
-      year_level: null, office_id: idOf('offices', s.office), position_title: s.position,
-    });
-  });
+  data.demoSignatories.forEach((s) =>
+    add(USER_SQL, ['signatory', s.id_number, s.email, demoHash, s.first_name, null, s.last_name,
+      s.college || null, s.program || null, null, s.office || null, s.position])
+  );
 
   const st = data.demoStudent;
-  insUser.run({
-    role: 'student', id_number: st.id_number, email: st.email, password_hash: demoHash,
-    first_name: st.first_name, middle_name: st.middle_name, last_name: st.last_name,
-    college_id: idOf('colleges', st.college), program_id: idOf('programs', st.program),
-    year_level: st.year_level, office_id: null, position_title: null,
+  add(USER_SQL, ['student', st.id_number, st.email, demoHash, st.first_name, st.middle_name || null, st.last_name,
+    st.college || null, st.program || null, st.year_level, null, null]);
+
+  data.demoSubjects.forEach(([code, title, instructorEmail]) =>
+    add(
+      `INSERT OR IGNORE INTO enrollments (student_id, term_id, subject_code, subject_title, instructor_id)
+       VALUES ((SELECT id FROM users WHERE email = ?), (SELECT id FROM academic_terms WHERE is_current = 1), ?, ?,
+               (SELECT id FROM users WHERE email = ?))`,
+      [st.email, code, title, instructorEmail]
+    )
+  );
+
+  await db.batch(S);
+
+  console.log('✔ Database ready (' + (db.isFile ? db.url : 'Turso') + ').');
+  console.log('✔ Colleges, programs, offices, term, settings and demo accounts seeded.');
+  console.log('');
+  console.log('Demo logins (for testing only):');
+  console.log('  Admin   : admin@isu-demo.local     /', data.ADMIN_PASSWORD);
+  console.log('  Student : student@isu-demo.local   /', data.DEMO_PASSWORD);
+  console.log('  Library : library@isu-demo.local   /', data.DEMO_PASSWORD);
+  console.log('  (all other demo signatories also use', data.DEMO_PASSWORD + ')');
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error('Seed failed:', err.message);
+    process.exit(1);
   });
-
-  // ---- Demo enrollments ----
-  const studentId = db.prepare('SELECT id FROM users WHERE email = ?').get(st.email).id;
-  const termId = db.prepare('SELECT id FROM academic_terms WHERE is_current = 1').get().id;
-  const insEnroll = db.prepare(`
-    INSERT OR IGNORE INTO enrollments (student_id, term_id, subject_code, subject_title, instructor_id)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-  data.demoSubjects.forEach(([code, title, instructorEmail]) => {
-    const inst = db.prepare('SELECT id FROM users WHERE email = ?').get(instructorEmail);
-    insEnroll.run(studentId, termId, code, title, inst ? inst.id : null);
-  });
-});
-
-seed();
-
-console.log('✔ Database ready at:', db.dbPath);
-console.log('✔ Colleges, programs, offices, term, settings and demo accounts seeded.');
-console.log('');
-console.log('Demo logins (for testing only):');
-console.log('  Admin   : admin@isu-demo.local     /', data.ADMIN_PASSWORD);
-console.log('  Student : student@isu-demo.local   /', data.DEMO_PASSWORD);
-console.log('  Library : library@isu-demo.local   /', data.DEMO_PASSWORD);
-console.log('  (all other demo signatories also use', data.DEMO_PASSWORD + ')');

@@ -1,12 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 const db = require('../config/database');
-
-// Signatures live OUTSIDE the public folder. They are only served through
-// a route that checks who is asking (see src/routes/files.js).
-const DIR = path.resolve(__dirname, '../../data/signatures');
-fs.mkdirSync(DIR, { recursive: true });
 
 const NAME_RE = /^[a-f0-9]{32}\.(png|jpg)$/;
 
@@ -20,23 +13,29 @@ function detectType(buf) {
 }
 
 // Saves the image under a random name and returns that name.
-function saveFile(buf, type) {
+async function saveFile(buf, type) {
   const name = crypto.randomBytes(16).toString('hex') + '.' + type;
-  fs.writeFileSync(path.join(DIR, name), buf);
+  await db.run(
+    'INSERT INTO signatures (name, mime, data) VALUES (?, ?, ?)',
+    name, type === 'png' ? 'image/png' : 'image/jpeg', buf.toString('base64')
+  );
   return name;
 }
 
-// Deletes a file only if no user and no clearance still uses it.
-function removeIfUnused(name) {
-  if (!name || !NAME_RE.test(name)) return;
-  const usedByClearance = db.prepare('SELECT 1 FROM clearance_items WHERE signature_path = ? LIMIT 1').get(name);
-  const usedByUser = db.prepare('SELECT 1 FROM users WHERE signature_path = ? LIMIT 1').get(name);
-  if (usedByClearance || usedByUser) return;
-  try {
-    fs.unlinkSync(path.join(DIR, name));
-  } catch (err) {
-    /* already gone, fine */
-  }
+// Returns { mime, buffer } or null.
+async function getFile(name) {
+  if (!NAME_RE.test(String(name))) return null;
+  const row = await db.get('SELECT mime, data FROM signatures WHERE name = ?', name);
+  return row ? { mime: row.mime, buffer: Buffer.from(row.data, 'base64') } : null;
 }
 
-module.exports = { DIR, NAME_RE, detectType, saveFile, removeIfUnused };
+// Deletes an image only if no user and no clearance still uses it.
+async function removeIfUnused(name) {
+  if (!name || !NAME_RE.test(name)) return;
+  const byClearance = await db.get('SELECT 1 AS x FROM clearance_items WHERE signature_path = ? LIMIT 1', name);
+  const byUser = await db.get('SELECT 1 AS x FROM users WHERE signature_path = ? LIMIT 1', name);
+  if (byClearance || byUser) return;
+  await db.run('DELETE FROM signatures WHERE name = ?', name);
+}
+
+module.exports = { NAME_RE, detectType, saveFile, getFile, removeIfUnused };

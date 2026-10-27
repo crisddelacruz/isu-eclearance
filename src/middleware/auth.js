@@ -7,37 +7,44 @@ const HOME = {
 };
 const homeFor = (role) => HOME[role] || '/login';
 
-const findUser = db.prepare(`
-  SELECT u.*,
-         c.code AS college_code, c.name AS college_name,
-         p.code AS program_code, p.name AS program_name,
-         o.code AS office_code,  o.name AS office_name, o.scope AS office_scope
-  FROM users u
-  LEFT JOIN colleges c ON c.id = u.college_id
-  LEFT JOIN programs p ON p.id = u.program_id
-  LEFT JOIN offices  o ON o.id = u.office_id
-  WHERE u.id = ?
-`);
-const countUnread = db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND is_read = 0');
-
 // Runs on every request: finds the logged-in user (if any).
-function loadUser(req, res, next) {
+// The cookie holds the user id and a "session version". If the version no longer
+// matches, the user was signed out by a password change or an admin action.
+async function loadUser(req, res, next) {
   req.user = null;
   res.locals.currentUser = null;
   res.locals.unreadCount = 0;
+
   const id = req.session.userId;
-  if (id) {
-    const u = findUser.get(id);
-    if (u && u.status === 'active') {
+  if (!id) return next();
+
+  try {
+    const u = await db.get(
+      `SELECT u.*,
+              c.code AS college_code, c.name AS college_name,
+              p.code AS program_code, p.name AS program_name,
+              o.code AS office_code,  o.name AS office_name, o.scope AS office_scope,
+              (SELECT COUNT(*) FROM notifications n WHERE n.user_id = u.id AND n.is_read = 0) AS unread
+       FROM users u
+       LEFT JOIN colleges c ON c.id = u.college_id
+       LEFT JOIN programs p ON p.id = u.program_id
+       LEFT JOIN offices  o ON o.id = u.office_id
+       WHERE u.id = ?`, id
+    );
+
+    if (u && u.status === 'active' && u.session_version === (req.session.v || 0)) {
       delete u.password_hash; // never expose the hash to pages
+      res.locals.unreadCount = u.unread;
       req.user = u;
       res.locals.currentUser = u;
-      res.locals.unreadCount = countUnread.get(u.id).n;
     } else {
-      delete req.session.userId; // user was deleted or disabled
+      delete req.session.userId;
+      delete req.session.v;
     }
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 }
 
 // Must be logged in.

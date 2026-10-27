@@ -1,4 +1,3 @@
-const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
@@ -44,17 +43,14 @@ function line(doc, text, x, y, w, o = {}) {
 }
 
 // The signature cell: image, line, printed name, position.
-function drawSignature(doc, it, x, y, w) {
+function drawSignature(doc, it, x, y, w, imageBuffer) {
   let drew = false;
-  if (it.signature_path && sig.NAME_RE.test(it.signature_path)) {
-    const file = path.join(sig.DIR, it.signature_path);
-    if (fs.existsSync(file)) {
-      try {
-        doc.image(file, x + (w - 110) / 2, y + 2, { fit: [110, 19], align: 'center', valign: 'bottom' });
-        drew = true;
-      } catch (err) {
-        console.error('PDF: could not draw signature', it.signature_path, err.message);
-      }
+  if (imageBuffer) {
+    try {
+      doc.image(imageBuffer, x + (w - 110) / 2, y + 2, { fit: [110, 19], align: 'center', valign: 'bottom' });
+      drew = true;
+    } catch (err) {
+      console.error('PDF: could not draw signature', it.signature_path, err.message);
     }
   }
   if (!drew) line(doc, '(e-signed)', x, y + 10, w, { size: 7, color: GREY, align: 'center' });
@@ -72,6 +68,14 @@ async function buildClearancePdf(sheet, verifyUrl) {
   const items = sheet.items;
 
   const qr = await QRCode.toBuffer(verifyUrl, { type: 'png', width: 240, margin: 1, errorCorrectionLevel: 'M' });
+  // Load every signature image from the database once.
+  const images = {};
+  for (const it of items) {
+    if (it.status === 'approved' && it.signature_path && !(it.signature_path in images)) {
+      const f = await sig.getFile(it.signature_path);
+      images[it.signature_path] = f ? f.buffer : null;
+    }
+  }
 
   const doc = new PDFDocument({
     size: 'A4',
@@ -165,7 +169,7 @@ async function buildClearancePdf(sheet, verifyUrl) {
     }
 
     if (it.status === 'approved') {
-      drawSignature(doc, it, XS[2], y, COLS[2]);
+      drawSignature(doc, it, XS[2], y, COLS[2], images[it.signature_path]);
       line(doc, fmtDate(it.acted_at), XS[3], y + 16, COLS[3], { size: 8, align: 'center' });
     } else if (it.status === 'rejected') {
       line(doc, 'RETURNED', XS[2], y + 16, COLS[2], { size: 8, bold: true, color: '#a3161b', align: 'center' });
