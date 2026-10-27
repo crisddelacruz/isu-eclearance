@@ -33,7 +33,7 @@ router.get('/login', guestOnly, (req, res) => {
   });
 });
 
-router.post('/login', guestOnly, loginLimiter, (req, res) => {
+router.post('/login', guestOnly, loginLimiter, async (req, res) => {
   const identifier = (req.body.identifier || '').trim();
   const password = req.body.password || '';
 
@@ -49,14 +49,15 @@ router.post('/login', guestOnly, loginLimiter, (req, res) => {
     return fail('Please enter your email or ID number and your password.');
   }
 
-  const user = db
-    .prepare('SELECT * FROM users WHERE email = ? OR lower(id_number) = lower(?)')
-    .get(identifier, identifier);
+  const user = await db.get(
+    'SELECT * FROM users WHERE email = ? OR lower(id_number) = lower(?)',
+    identifier, identifier
+  );
 
-  const passwordOk = bcrypt.compareSync(password, user ? user.password_hash : DUMMY_HASH);
+  const passwordOk = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
 
   if (!user || !passwordOk) {
-    audit(req, 'LOGIN_FAILED', 'Identifier: ' + identifier, null);
+    await audit(req, 'LOGIN_FAILED', 'Identifier: ' + identifier, null);
     return fail('Incorrect email/ID number or password.');
   }
   if (user.status === 'disabled') {
@@ -68,37 +69,31 @@ router.post('/login', guestOnly, loginLimiter, (req, res) => {
 
   const returnTo = req.session.returnTo;
 
-  // New session ID on login (prevents session fixation attacks)
-  req.session.regenerate((err) => {
-    if (err) {
-      console.error(err);
-      return fail('Something went wrong. Please try again.');
-    }
-    req.session.userId = user.id;
-    db.prepare("UPDATE users SET last_login_at = datetime('now','localtime') WHERE id = ?").run(user.id);
-    audit(req, 'LOGIN', 'Logged in', user.id);
+  // A brand-new session object on login. The cookie holds the user id and the
+  // session version, so a later password change signs every old cookie out.
+  req.session = { userId: user.id, v: user.session_version || 0 };
 
-    const safeReturn =
-      returnTo && returnTo.startsWith('/' + user.role + '/') ? returnTo : homeFor(user.role);
-    res.redirect(safeReturn);
-  });
+  await db.run("UPDATE users SET last_login_at = datetime('now','+8 hours') WHERE id = ?", user.id);
+  await audit(req, 'LOGIN', 'Logged in', user.id);
+
+  const safeReturn =
+    returnTo && returnTo.startsWith('/' + user.role + '/') ? returnTo : homeFor(user.role);
+  res.redirect(safeReturn);
 });
 
 // ---------------- REGISTER (students only) ----------------
-function lookups() {
+async function lookups() {
   return {
-    colleges: db.prepare('SELECT id, code, name FROM colleges WHERE is_active = 1 ORDER BY name').all(),
-    programs: db
-      .prepare('SELECT id, college_id, code, name FROM programs WHERE is_active = 1 ORDER BY name')
-      .all(),
+    colleges: await db.all('SELECT id, code, name FROM colleges WHERE is_active = 1 ORDER BY name'),
+    programs: await db.all('SELECT id, college_id, code, name FROM programs WHERE is_active = 1 ORDER BY name'),
   };
 }
 
-router.get('/register', guestOnly, (req, res) => {
-  res.render('auth/register', { title: 'Create account', values: {}, errors: {}, ...lookups() });
+router.get('/register', guestOnly, async (req, res) => {
+  res.render('auth/register', { title: 'Create account', values: {}, errors: {}, ...(await lookups()) });
 });
 
-router.post('/register', guestOnly, (req, res) => {
+router.post('/register', guestOnly, async (req, res) => {
   const b = req.body;
   const v = {
     id_number: (b.id_number || '').trim(),
@@ -118,7 +113,7 @@ router.post('/register', guestOnly, (req, res) => {
   // ID number
   if (!/^[A-Za-z0-9-]{4,20}$/.test(v.id_number)) {
     errors.id_number = 'Use 4 to 20 characters: letters, numbers, and dashes only.';
-  } else if (db.prepare('SELECT 1 FROM users WHERE lower(id_number) = lower(?)').get(v.id_number)) {
+  } else if (await db.get('SELECT 1 AS x FROM users WHERE lower(id_number) = lower(?)', v.id_number)) {
     errors.id_number = 'This ID number is already registered. Try logging in instead.';
   }
 
@@ -133,14 +128,14 @@ router.post('/register', guestOnly, (req, res) => {
   // Email
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) {
     errors.email = 'Enter a valid email address.';
-  } else if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(v.email)) {
+  } else if (await db.get('SELECT 1 AS x FROM users WHERE email = ?', v.email)) {
     errors.email = 'This email is already registered. Try logging in instead.';
   }
 
   // College and program
-  const college = v.college_id && db.prepare('SELECT id FROM colleges WHERE id = ?').get(v.college_id);
+  const college = v.college_id ? await db.get('SELECT id FROM colleges WHERE id = ?', v.college_id) : null;
   if (!college) errors.college_id = 'Please select your college.';
-  const program = v.program_id && db.prepare('SELECT id, college_id FROM programs WHERE id = ?').get(v.program_id);
+  const program = v.program_id ? await db.get('SELECT id, college_id FROM programs WHERE id = ?', v.program_id) : null;
   if (!program) errors.program_id = 'Please select your program.';
   else if (college && program.college_id !== college.id) {
     errors.program_id = 'That program does not belong to the selected college.';
@@ -159,43 +154,38 @@ router.post('/register', guestOnly, (req, res) => {
 
   if (Object.keys(errors).length) {
     return res.status(422).render('auth/register', {
-      title: 'Create account', values: v, errors, ...lookups(),
+      title: 'Create account', values: v, errors, ...(await lookups()),
     });
   }
 
   try {
-    const info = db
-      .prepare(`
-        INSERT INTO users
-          (role, id_number, email, password_hash, first_name, middle_name, last_name, suffix,
-           college_id, program_id, year_level, status)
-        VALUES ('student', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
-      `)
-      .run(
-        v.id_number, v.email, bcrypt.hashSync(password, 10),
-        v.first_name, v.middle_name || null, v.last_name, v.suffix || null,
-        v.college_id, v.program_id, v.year_level
-      );
-    audit(req, 'REGISTER', 'New student account: ' + v.id_number, info.lastInsertRowid);
+    const info = await db.run(
+      `INSERT INTO users
+         (role, id_number, email, password_hash, first_name, middle_name, last_name, suffix,
+          college_id, program_id, year_level, status)
+       VALUES ('student', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+      v.id_number, v.email, await bcrypt.hash(password, 10),
+      v.first_name, v.middle_name || null, v.last_name, v.suffix || null,
+      v.college_id, v.program_id, v.year_level
+    );
+    await audit(req, 'REGISTER', 'New student account: ' + v.id_number, info.lastId);
     req.flash('success', 'Account created successfully. You can now log in.');
     res.redirect('/login');
   } catch (err) {
     console.error(err);
     errors.email = 'Could not create the account. The email or ID number may already be in use.';
     res.status(422).render('auth/register', {
-      title: 'Create account', values: v, errors, ...lookups(),
+      title: 'Create account', values: v, errors, ...(await lookups()),
     });
   }
 });
 
 // ---------------- LOGOUT ----------------
-router.post('/logout', (req, res) => {
-  const uid = req.session.userId;
-  if (uid) audit(req, 'LOGOUT', 'Logged out', uid);
-  req.session.destroy(() => {
-    res.clearCookie('isu.sid');
-    res.redirect('/login?loggedout=1');
-  });
+router.post('/logout', async (req, res) => {
+  const uid = req.session && req.session.userId;
+  if (uid) await audit(req, 'LOGOUT', 'Logged out', uid);
+  req.session = null; // clears the cookie
+  res.redirect('/login?loggedout=1');
 });
 
 module.exports = router;

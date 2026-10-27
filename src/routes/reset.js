@@ -11,16 +11,6 @@ const { guestOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS password_resets (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token_hash TEXT NOT NULL UNIQUE,
-    expires_at INTEGER NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-  )
-`);
-
 const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
 const TOKEN_RE = /^[a-f0-9]{64}$/;
 const ONE_HOUR = 60 * 60 * 1000;
@@ -37,16 +27,15 @@ const limiter = rateLimit({
   },
 });
 
-function findValid(token) {
+async function findValid(token) {
   if (!TOKEN_RE.test(token)) return null;
   return (
-    db
-      .prepare(`
-        SELECT pr.id, pr.user_id, u.first_name FROM password_resets pr
-        JOIN users u ON u.id = pr.user_id AND u.status = 'active'
-        WHERE pr.token_hash = ? AND pr.expires_at > ?
-      `)
-      .get(hashToken(token), Date.now()) || null
+    (await db.get(
+      `SELECT pr.id, pr.user_id, u.first_name FROM password_resets pr
+       JOIN users u ON u.id = pr.user_id AND u.status = 'active'
+       WHERE pr.token_hash = ? AND pr.expires_at > ?`,
+      hashToken(token), Date.now()
+    )) || null
   );
 }
 
@@ -55,26 +44,28 @@ router.get('/forgot', guestOnly, (req, res) => {
   res.render('auth/forgot', { title: 'Forgot password' });
 });
 
-router.post('/forgot', guestOnly, limiter, (req, res) => {
+router.post('/forgot', guestOnly, limiter, async (req, res) => {
   if (!mailOn) {
     req.flash('error', 'Password reset by email is not available. Please contact the system administrator.');
     return res.redirect('/forgot');
   }
   const email = String(req.body.email || '').trim().toLowerCase().slice(0, 150);
 
-  db.prepare('DELETE FROM password_resets WHERE expires_at < ?').run(Date.now());
+  await db.run('DELETE FROM password_resets WHERE expires_at < ?', Date.now());
 
   const user = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-    ? db.prepare("SELECT id, first_name FROM users WHERE email = ? AND status = 'active'").get(email)
+    ? await db.get("SELECT id, first_name FROM users WHERE email = ? AND status = 'active'", email)
     : null;
 
   if (user) {
     const token = crypto.randomBytes(32).toString('hex');
-    db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(user.id);
-    db.prepare('INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)')
-      .run(user.id, hashToken(token), Date.now() + ONE_HOUR);
-    audit(req, 'PASSWORD_RESET_REQUEST', 'Reset link sent', user.id);
-    sendMail(
+    await db.run('DELETE FROM password_resets WHERE user_id = ?', user.id);
+    await db.run(
+      'INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
+      user.id, hashToken(token), Date.now() + ONE_HOUR
+    );
+    await audit(req, 'PASSWORD_RESET_REQUEST', 'Reset link sent', user.id);
+    await sendMail(
       email,
       'Reset your ISU eClearance password',
       'Hello ' + user.first_name + ',\n\n' +
@@ -90,12 +81,12 @@ router.post('/forgot', guestOnly, limiter, (req, res) => {
 });
 
 // ---------- Use the link ----------
-router.get('/reset/:token', (req, res) => {
-  res.render('auth/reset', { title: 'Reset password', valid: !!findValid(req.params.token) });
+router.get('/reset/:token', async (req, res) => {
+  res.render('auth/reset', { title: 'Reset password', valid: !!(await findValid(req.params.token)) });
 });
 
-router.post('/reset/:token', (req, res) => {
-  const found = findValid(req.params.token);
+router.post('/reset/:token', async (req, res) => {
+  const found = await findValid(req.params.token);
   if (!found) return res.status(400).render('auth/reset', { title: 'Reset password', valid: false });
 
   const next = String(req.body.new_password || '');
@@ -106,20 +97,19 @@ router.post('/reset/:token', (req, res) => {
     return res.redirect('/reset/' + req.params.token);
   }
 
-  db.transaction(() => {
-    db.prepare(
-      "UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = datetime('now','localtime') WHERE id = ?"
-    ).run(bcrypt.hashSync(next, 10), found.user_id);
-    db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(found.user_id);
-    try {
-      // log the user out of every device
-      db.prepare("DELETE FROM sessions WHERE json_extract(sess, '$.userId') = ?").run(found.user_id);
-    } catch (err) {
-      console.error('Could not clear old sessions:', err.message);
-    }
-  })();
+  const hash = await bcrypt.hash(next, 10);
+  await db.tx(async (t) => {
+    // Raising session_version logs the user out of every device.
+    await t.run(
+      `UPDATE users SET password_hash = ?, must_change_password = 0,
+              session_version = session_version + 1, updated_at = datetime('now','+8 hours')
+       WHERE id = ?`,
+      hash, found.user_id
+    );
+    await t.run('DELETE FROM password_resets WHERE user_id = ?', found.user_id);
+  });
 
-  audit(req, 'PASSWORD_RESET_DONE', 'Password reset by email link', found.user_id);
+  await audit(req, 'PASSWORD_RESET_DONE', 'Password reset by email link', found.user_id);
   req.flash('success', 'Your password was changed. You can now log in.');
   res.redirect('/login');
 });

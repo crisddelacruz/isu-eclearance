@@ -12,10 +12,16 @@ const { requireRole } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireRole('signatory')); // every page below is for signatories only
 
+const NOW = "datetime('now','+8 hours')";
+
 // Pending count for the sidebar badge
-router.use((req, res, next) => {
-  res.locals.pendingCount = S.countPending(req.user);
-  next();
+router.use(async (req, res, next) => {
+  try {
+    res.locals.pendingCount = await S.countPending(req.user);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 const notFound = (res) =>
@@ -25,28 +31,28 @@ const notFound = (res) =>
   });
 
 // ============ DASHBOARD ============
-router.get('/dashboard', (req, res) => {
+router.get('/dashboard', async (req, res) => {
   res.render('signatory/dashboard', {
     title: 'Signatory Dashboard', active: 'dashboard',
-    stats: S.stats(req.user),
-    recent: S.pendingFor(req.user, { limit: 8 }),
-    notifications: db
-      .prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 5')
-      .all(req.user.id),
+    stats: await S.stats(req.user),
+    recent: await S.pendingFor(req.user, { limit: 8 }),
+    notifications: await db.all(
+      'SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 5', req.user.id
+    ),
   });
 });
 
 // ============ PENDING REQUESTS ============
-router.get('/requests', (req, res) => {
+router.get('/requests', async (req, res) => {
   const search = String(req.query.q || '').trim().slice(0, 60);
   res.render('signatory/requests', {
     title: 'Pending Requests', active: 'pending',
-    search, rows: S.pendingFor(req.user, { search, limit: 100 }),
+    search, rows: await S.pendingFor(req.user, { search, limit: 100 }),
   });
 });
 
 // Approve many lines at once
-router.post('/requests/approve-selected', (req, res) => {
+router.post('/requests/approve-selected', async (req, res) => {
   let ids = req.body.item_ids ? [].concat(req.body.item_ids) : [];
   ids = [...new Set(ids.map((n) => parseInt(n, 10)).filter(Boolean))].slice(0, 100);
 
@@ -61,13 +67,13 @@ router.post('/requests/approve-selected', (req, res) => {
 
   let done = 0;
   let skipped = 0;
-  ids.forEach((id) => {
-    const r = signing.approveItem(req.user, id);
+  for (const id of ids) {
+    const r = await signing.approveItem(req.user, id);
     if (r.ok) {
       done++;
-      audit(req, 'ITEM_APPROVE', 'Line #' + id + ' (bulk)');
+      await audit(req, 'ITEM_APPROVE', 'Line #' + id + ' (bulk)');
     } else skipped++;
-  });
+  }
 
   if (done) req.flash('success', done + ' request' + (done === 1 ? '' : 's') + ' approved and signed.');
   if (skipped) req.flash('error', skipped + ' request' + (skipped === 1 ? ' was' : 's were') + ' skipped because ' + (skipped === 1 ? 'it is' : 'they are') + ' no longer waiting for you.');
@@ -75,12 +81,12 @@ router.post('/requests/approve-selected', (req, res) => {
 });
 
 // Review one line (with the full clearance form)
-router.get('/requests/:id', (req, res) => {
+router.get('/requests/:id', async (req, res) => {
   const itemId = parseInt(req.params.id, 10);
-  const found = itemId ? S.findItem(req.user, itemId) : null;
+  const found = itemId ? await S.findItem(req.user, itemId) : null;
   if (!found) return notFound(res);
 
-  const sheet = sheetFor(found.item.request_id);
+  const sheet = await sheetFor(found.item.request_id);
   if (!sheet) return notFound(res);
 
   res.render('signatory/request-detail', {
@@ -89,9 +95,9 @@ router.get('/requests/:id', (req, res) => {
   });
 });
 
-router.post('/requests/:id/approve', (req, res) => {
+router.post('/requests/:id/approve', async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const r = id ? signing.approveItem(req.user, id) : { error: 'Request not found.' };
+  const r = id ? await signing.approveItem(req.user, id) : { error: 'Request not found.' };
 
   if (r.error === 'no_signature') {
     req.flash('error', 'Set up your e-signature first. It is needed to approve requests.');
@@ -101,7 +107,7 @@ router.post('/requests/:id/approve', (req, res) => {
     req.flash('error', r.error);
     return res.redirect('/signatory/requests');
   }
-  audit(req, 'ITEM_APPROVE', 'Line #' + id);
+  await audit(req, 'ITEM_APPROVE', 'Line #' + id);
   req.flash(
     'success',
     'Approved. Your e-signature was placed on the clearance.' + (r.completed ? ' This was the last office, so the clearance is now complete.' : '')
@@ -109,7 +115,7 @@ router.post('/requests/:id/approve', (req, res) => {
   res.redirect('/signatory/requests');
 });
 
-router.post('/requests/:id/return', (req, res) => {
+router.post('/requests/:id/return', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const remarks = String(req.body.remarks || '').trim();
 
@@ -117,20 +123,20 @@ router.post('/requests/:id/return', (req, res) => {
     req.flash('error', 'Please explain what the student must settle (5 to 300 characters).');
     return res.redirect('/signatory/requests/' + id);
   }
-  const r = id ? signing.returnItem(req.user, id, remarks) : { error: 'Request not found.' };
+  const r = id ? await signing.returnItem(req.user, id, remarks) : { error: 'Request not found.' };
   if (r.error) {
     req.flash('error', r.error);
     return res.redirect('/signatory/requests');
   }
-  audit(req, 'ITEM_RETURN', 'Line #' + id);
+  await audit(req, 'ITEM_RETURN', 'Line #' + id);
   req.flash('success', 'The request was returned to the student with your remarks.');
   res.redirect('/signatory/requests');
 });
 
 // ============ HISTORY ============
-router.get('/history', (req, res) => {
+router.get('/history', async (req, res) => {
   res.render('signatory/history', {
-    title: 'Signed History', active: 'history', rows: S.historyFor(req.user),
+    title: 'Signed History', active: 'history', rows: await S.historyFor(req.user),
   });
 });
 
@@ -157,24 +163,22 @@ function handleUpload(req, res, next) {
 }
 
 // Saves a verified image as the signatory's signature.
-function applySignature(req, buffer, type, how) {
-  const name = sig.saveFile(buffer, type);
+async function applySignature(req, buffer, type, how) {
+  const name = await sig.saveFile(buffer, type);
   const old = req.user.signature_path;
-  db.prepare(`
-    UPDATE users
-    SET signature_path = ?, signature_updated_at = datetime('now','localtime'),
-        updated_at = datetime('now','localtime')
-    WHERE id = ?
-  `).run(name, req.user.id);
-  if (old) sig.removeIfUnused(old); // keeps files that old clearances still use
-  audit(req, 'SIGNATURE_SAVE', how + ' (' + type + ')');
+  await db.run(
+    `UPDATE users SET signature_path = ?, signature_updated_at = ${NOW}, updated_at = ${NOW} WHERE id = ?`,
+    name, req.user.id
+  );
+  if (old) await sig.removeIfUnused(old); // keeps images that old clearances still use
+  await audit(req, 'SIGNATURE_SAVE', how + ' (' + type + ')');
 }
 
 router.get('/signature', (req, res) => {
   res.render('signatory/signature', { title: 'My E-Signature', active: 'signature' });
 });
 
-router.post('/signature/upload', handleUpload, (req, res) => {
+router.post('/signature/upload', handleUpload, async (req, res) => {
   if (!req.file) {
     req.flash('error', 'Please choose an image file first.');
     return res.redirect('/signatory/signature');
@@ -184,13 +188,13 @@ router.post('/signature/upload', handleUpload, (req, res) => {
     req.flash('error', 'That file is not a valid PNG or JPG image.');
     return res.redirect('/signatory/signature');
   }
-  applySignature(req, req.file.buffer, type, 'upload');
+  await applySignature(req, req.file.buffer, type, 'upload');
   req.flash('success', 'Your e-signature was saved.');
   res.redirect('/signatory/signature');
 });
 
 // Drawn signature (sent by JavaScript as a PNG data URL)
-router.post('/signature/draw', (req, res) => {
+router.post('/signature/draw', async (req, res) => {
   const m = /^data:image\/png;base64,([A-Za-z0-9+/]+={0,2})$/.exec(String((req.body && req.body.image) || ''));
   if (!m) return res.status(400).json({ error: 'The signature image is not valid.' });
 
@@ -198,44 +202,44 @@ router.post('/signature/draw', (req, res) => {
   if (buf.length > 400 * 1024) return res.status(400).json({ error: 'The signature image is too large.' });
   if (sig.detectType(buf) !== 'png') return res.status(400).json({ error: 'The signature image is not valid.' });
 
-  applySignature(req, buf, 'png', 'drawn');
+  await applySignature(req, buf, 'png', 'drawn');
   req.flash('success', 'Your drawn signature was saved.');
   res.json({ ok: true });
 });
 
-router.post('/signature/delete', (req, res) => {
+router.post('/signature/delete', async (req, res) => {
   const old = req.user.signature_path;
   if (!old) {
     req.flash('error', 'You do not have a saved signature.');
     return res.redirect('/signatory/signature');
   }
-  db.prepare(`
-    UPDATE users SET signature_path = NULL, signature_updated_at = NULL,
-           updated_at = datetime('now','localtime') WHERE id = ?
-  `).run(req.user.id);
-  sig.removeIfUnused(old);
-  audit(req, 'SIGNATURE_REMOVE', 'Signature removed');
+  await db.run(
+    `UPDATE users SET signature_path = NULL, signature_updated_at = NULL, updated_at = ${NOW} WHERE id = ?`,
+    req.user.id
+  );
+  await sig.removeIfUnused(old);
+  await audit(req, 'SIGNATURE_REMOVE', 'Signature removed');
   req.flash('success', 'Your e-signature was removed.');
   res.redirect('/signatory/signature');
 });
 
 // ============ NOTIFICATIONS ============
-router.get('/notifications', (req, res) => {
-  const list = db
-    .prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50')
-    .all(req.user.id);
+router.get('/notifications', async (req, res) => {
+  const list = await db.all(
+    'SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50', req.user.id
+  );
   res.render('signatory/notifications', { title: 'Notifications', active: 'notifications', list });
 });
 
-router.post('/notifications/read-all', (req, res) => {
-  db.prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ?').run(req.user.id);
+router.post('/notifications/read-all', async (req, res) => {
+  await db.run('UPDATE notifications SET is_read = 1 WHERE user_id = ?', req.user.id);
   res.redirect('/signatory/notifications');
 });
 
-router.post('/notifications/:id/read', (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const n = db.prepare('SELECT * FROM notifications WHERE id = ? AND user_id = ?').get(id, req.user.id);
-  if (n) db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(id);
+router.post('/notifications/:id/read', async (req, res) => {
+  const id = parseInt(req.params.id, 10) || 0;
+  const n = await db.get('SELECT * FROM notifications WHERE id = ? AND user_id = ?', id, req.user.id);
+  if (n) await db.run('UPDATE notifications SET is_read = 1 WHERE id = ?', id);
   const safe = n && n.link && n.link.startsWith('/signatory/') ? n.link : '/signatory/notifications';
   res.redirect(safe);
 });
@@ -245,40 +249,42 @@ router.get('/profile', (req, res) => {
   res.render('signatory/profile', { title: 'My Profile', active: 'profile' });
 });
 
-router.post('/profile', (req, res) => {
+router.post('/profile', async (req, res) => {
   const phone = (req.body.phone || '').trim();
   if (phone && !/^[0-9+\-\s()]{7,20}$/.test(phone)) {
     req.flash('error', 'Enter a valid phone number, or leave it empty.');
     return res.redirect('/signatory/profile');
   }
-  db.prepare("UPDATE users SET phone = ?, updated_at = datetime('now','localtime') WHERE id = ?")
-    .run(phone || null, req.user.id);
-  audit(req, 'PROFILE_UPDATE', 'Phone updated');
+  await db.run(`UPDATE users SET phone = ?, updated_at = ${NOW} WHERE id = ?`, phone || null, req.user.id);
+  await audit(req, 'PROFILE_UPDATE', 'Phone updated');
   req.flash('success', 'Your profile was updated.');
   res.redirect('/signatory/profile');
 });
 
-router.post('/password', (req, res) => {
+router.post('/password', async (req, res) => {
   const current = req.body.current_password || '';
   const next = req.body.new_password || '';
   const confirm = req.body.confirm_password || '';
-  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
+  const row = await db.get('SELECT password_hash, session_version FROM users WHERE id = ?', req.user.id);
   const fail = (msg) => {
     req.flash('error', msg);
     res.redirect('/signatory/profile');
   };
 
-  if (!bcrypt.compareSync(current, row.password_hash)) return fail('Your current password is incorrect.');
+  if (!(await bcrypt.compare(current, row.password_hash))) return fail('Your current password is incorrect.');
   if (next.length < 8) return fail('New password must be at least 8 characters.');
   if (next.length > 72) return fail('New password must be 72 characters or fewer.');
   if (!/[A-Za-z]/.test(next) || !/\d/.test(next)) return fail('New password must contain both letters and numbers.');
   if (next !== confirm) return fail('The new passwords do not match.');
-  if (bcrypt.compareSync(next, row.password_hash)) return fail('Your new password must be different from the current one.');
+  if (await bcrypt.compare(next, row.password_hash)) return fail('Your new password must be different from the current one.');
 
-  db.prepare(
-    "UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = datetime('now','localtime') WHERE id = ?"
-  ).run(bcrypt.hashSync(next, 10), req.user.id);
-  audit(req, 'PASSWORD_CHANGE', 'Password changed');
+  await db.run(
+    `UPDATE users SET password_hash = ?, must_change_password = 0,
+            session_version = session_version + 1, updated_at = ${NOW} WHERE id = ?`,
+    await bcrypt.hash(next, 10), req.user.id
+  );
+  req.session.v = row.session_version + 1; // this device stays logged in
+  await audit(req, 'PASSWORD_CHANGE', 'Password changed');
   req.flash('success', 'Your password was changed.');
   res.redirect('/signatory/profile');
 });

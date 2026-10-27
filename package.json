@@ -12,7 +12,8 @@
     "db:reset": "node src/utils/seed.js --reset",
     "db:check": "node src/utils/db-check.js",
     "mail:test": "node src/utils/mail-test.js",
-    "check:12b": "node src/utils/check-12b.js"
+    "check:12b": "node src/utils/check-12b.js",
+    "check:12c": "node src/utils/check-12c.js"
   },
   "keywords": [
     "clearance",
