@@ -1,0 +1,104 @@
+<%- include('../layouts/app-top', { title: title, active: 'signature' }) %>
+<%
+  const hasSig = !!currentUser.signature_path;
+  const fullName = currentUser.first_name + ' ' + currentUser.last_name;
+%>
+
+<div class="page-head">
+  <h1>My E-Signature</h1>
+  <p>This signature is placed automatically on a student's clearance each time you approve.</p>
+</div>
+
+<% if (!hasSig) { %>
+  <div class="alert alert-info" role="status">You do not have an e-signature yet. Upload an image or draw one below.</div>
+<% } %>
+
+<div class="two-col">
+  <!-- ============ ADD / REPLACE ============ -->
+  <section class="card">
+    <h3><%= hasSig ? 'Replace your signature' : 'Add your signature' %></h3>
+    <p class="card-sub">Choose the way that is easiest for you.</p>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="upload">Upload image</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-tab="draw">Draw signature</button>
+    </div>
+
+    <!-- Upload -->
+    <div class="tab-panel" id="panel-upload" role="tabpanel">
+      <form method="post" action="/signatory/signature/upload?_csrf=<%= csrfToken %>"
+            enctype="multipart/form-data" data-once novalidate>
+        <div class="field">
+          <label for="sigFile">Signature image (PNG or JPG, up to 1 MB)</label>
+          <input class="input" type="file" id="sigFile" name="signature" accept="image/png,image/jpeg" required />
+        </div>
+        <div class="upload-preview" id="sigPreview" hidden>
+          <div class="sig-stage"><img src="" alt="Preview of the chosen signature" /></div>
+        </div>
+        <div class="inline-msg" id="uploadMsg" role="status"></div>
+        <button class="btn btn-primary" type="submit">Save signature</button>
+      </form>
+
+      <ul class="tips">
+        <li>Sign with a dark pen on plain white paper, then take a clear, well-lit photo.</li>
+        <li>Crop the photo so only your signature shows.</li>
+        <li>A PNG with a transparent background looks best on the clearance.</li>
+      </ul>
+    </div>
+
+    <!-- Draw -->
+    <div class="tab-panel" id="panel-draw" role="tabpanel" hidden>
+      <div class="pad" id="padBox" data-csrf="<%= csrfToken %>">
+        <canvas id="sigPad" width="600" height="200" aria-label="Signature drawing area"></canvas>
+        <span class="pad-line"></span>
+        <span class="pad-hint">Sign above the line</span>
+      </div>
+      <div class="inline-msg" id="padMsg" role="status"></div>
+      <div class="actions">
+        <button class="btn btn-outline btn-sm" type="button" id="padClear">Clear</button>
+        <button class="btn btn-primary btn-sm" type="button" id="padSave">Save signature</button>
+      </div>
+      <ul class="tips">
+        <li>Use your finger on a phone or tablet, or the mouse or touchpad on a computer.</li>
+        <li>Press Clear to start over before saving.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ CURRENT ============ -->
+  <section class="card">
+    <h3>Current signature</h3>
+    <p class="card-sub">
+      <% if (hasSig) { %>Last updated <%= fmtDateTime(currentUser.signature_updated_at) %>
+      <% } else { %>Nothing saved yet.<% } %>
+    </p>
+
+    <div class="sig-stage">
+      <% if (hasSig) { %>
+        <img src="/files/signature/<%= currentUser.signature_path %>" alt="Your current e-signature" />
+      <% } else { %>
+        <span>No signature yet</span>
+      <% } %>
+    </div>
+
+    <% if (hasSig) { %>
+      <div class="sig-sample">
+        <small class="cap">How it will look on a clearance</small>
+        <div class="sig-img"><img src="/files/signature/<%= currentUser.signature_path %>" alt="" /></div>
+        <div class="rule"></div>
+        <strong><%= fullName %></strong>
+        <span><%= currentUser.position_title || currentUser.office_name || '' %></span>
+      </div>
+
+      <form method="post" action="/signatory/signature/delete" style="margin-top:16px"
+            onsubmit="return confirm('Remove your e-signature? You will not be able to approve requests until you add a new one.');">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <button class="btn btn-danger btn-sm" type="submit">Remove signature</button>
+      </form>
+    <% } %>
+  </section>
+</div>
+
+<script src="/js/signature.js" defer></script>
+
+<%- include('../layouts/app-bottom') %>

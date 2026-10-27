@@ -1,0 +1,42 @@
+<%
+  const sel = (typeof selectable !== 'undefined') && selectable;
+%>
+<% if (!rows.length) { %>
+  <div class="empty">
+    <%- icon('checkc') %>
+    <h4><%= emptyTitle %></h4>
+    <p><%= emptyText %></p>
+  </div>
+<% } else { %>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <% if (sel) { %><th class="chk"><input type="checkbox" id="checkAll" aria-label="Select all requests" /></th><% } %>
+          <th>Student</th><th>Program</th><th>You are signing as</th><th>Purpose</th><th>Requested</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach(function (r) { %>
+          <tr>
+            <% if (sel) { %>
+              <td class="chk"><input type="checkbox" class="row-check" name="item_ids" value="<%= r.item_id %>" aria-label="Select <%= r.student_name %>" /></td>
+            <% } %>
+            <td><strong><%= r.student_name %></strong><span class="sub"><%= r.id_number %></span></td>
+            <td>
+              <%= r.program_code || '—' %>
+              <% if (r.year_level) { %><span class="sub"><%= ['1st','2nd','3rd','4th','5th','6th'][r.year_level - 1] %> year</span><% } %>
+            </td>
+            <td>
+              <%= r.office_name %>
+              <% if (r.subject_code) { %><span class="sub"><%= r.subject_code %> &middot; <%= r.subject_title %></span><% } %>
+            </td>
+            <td><%= r.purpose %><span class="sub"><%= r.reference_no %></span></td>
+            <td><%= fmtDate(r.requested_at) %></td>
+            <td><a class="btn btn-primary btn-sm" href="/signatory/requests/<%= r.item_id %>">Review</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>

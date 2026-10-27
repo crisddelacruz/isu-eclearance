@@ -1,0 +1,76 @@
+<%- include('../layouts/app-top', { title: title, active: 'offices' }) %>
+<%
+  const bad = (k) => (errors[k] ? ' is-invalid' : '');
+  const msg = (k) => (errors[k] ? '<p class="field-error">' + errors[k] + '</p>' : '');
+  const action = isEdit ? '/admin/offices/' + office.id : '/admin/offices';
+%>
+
+<div class="page-head">
+  <a class="link-more" href="/admin/offices">&larr; Back to Offices</a>
+  <h1 style="margin-top:6px"><%= isEdit ? 'Edit office' : 'Add office' %></h1>
+</div>
+
+<% if (Object.keys(errors).length) { %>
+  <div class="alert alert-error" role="alert">Please fix the highlighted fields below.</div>
+<% } %>
+
+<section class="card form-card">
+  <form method="post" action="<%= action %>" data-once novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="code">Code</label>
+        <% if (isEdit) { %>
+          <div class="readonly-box mono"><%= values.code %></div>
+        <% } else { %>
+          <input class="input<%= bad('code') %>" type="text" id="code" name="code" value="<%= values.code %>" maxlength="10" placeholder="e.g. ALUMNI" required />
+          <%- msg('code') %>
+        <% } %>
+      </div>
+      <div class="field">
+        <label for="sort_order">Signing order</label>
+        <input class="input<%= bad('sort_order') %>" type="number" id="sort_order" name="sort_order" value="<%= values.sort_order %>" min="1" max="999" required />
+        <%- msg('sort_order') %>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="name">Office name</label>
+      <input class="input<%= bad('name') %>" type="text" id="name" name="name" value="<%= values.name %>" maxlength="80" required />
+      <%- msg('name') %>
+    </div>
+
+    <div class="field">
+      <label for="description">What this office confirms</label>
+      <input class="input<%= bad('description') %>" type="text" id="description" name="description" value="<%= values.description %>" maxlength="200" placeholder="e.g. Confirms all borrowed books are returned." />
+      <%- msg('description') %>
+    </div>
+
+    <div class="field">
+      <label for="scope">Who signs for this office</label>
+      <% if (isEdit) { %>
+        <div class="readonly-box"><%= values.scope === 'instructor' ? "Each subject's instructor" : values.scope === 'college' ? 'Matched by the student\'s college' : values.scope === 'program' ? 'Matched by the student\'s program' : 'One office for the whole university' %></div>
+        <p class="hint">This cannot be changed after the office is created.</p>
+      <% } else { %>
+        <select class="input<%= bad('scope') %>" id="scope" name="scope">
+          <option value="university" <%= values.scope === 'university' ? 'selected' : '' %>>One office for the whole university</option>
+          <option value="college" <%= values.scope === 'college' ? 'selected' : '' %>>Matched by the student's college (like the Dean)</option>
+          <option value="program" <%= values.scope === 'program' ? 'selected' : '' %>>Matched by the student's program (like the Chair)</option>
+        </select>
+        <%- msg('scope') %>
+      <% } %>
+    </div>
+
+    <div class="field">
+      <label class="checkbox"><input type="checkbox" name="is_active" value="1" <%= values.is_active ? 'checked' : '' %> /> Active (included in new clearance requests)</label>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit"><%= isEdit ? 'Save changes' : 'Add office' %></button>
+      <a class="btn btn-outline" href="/admin/offices">Cancel</a>
+    </div>
+  </form>
+</section>
+
+<%- include('../layouts/app-bottom') %>

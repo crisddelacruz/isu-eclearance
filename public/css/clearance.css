@@ -1,0 +1,83 @@
+/* ISU eClearance: clearance template, review page, print (loaded last) */
+
+textarea.input { min-height: 100px; resize: vertical; }
+.t-side { display: grid; gap: 8px; justify-items: end; }
+.chk { width: 44px; text-align: center; }
+.chk input { width: 18px; height: 18px; accent-color: var(--green-700); cursor: pointer; }
+
+.bulk-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.bulk-bar .count { color: var(--muted); font-weight: 600; font-size: .9rem; }
+
+.review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px; }
+.review-grid .card { margin-bottom: 0; }
+
+.sig-preview { margin: 4px 0 14px; padding: 14px; border: 1px dashed var(--line); border-radius: 12px; text-align: center; background: #fff; }
+.sig-preview img { max-height: 60px; max-width: 70%; margin: 0 auto 4px; object-fit: contain; }
+.sig-preview small { color: var(--muted); }
+
+/* ---------- The clearance sheet (paper form) ---------- */
+.sheet-wrap { overflow-x: auto; padding: 4px 2px 8px; }
+.sheet {
+  min-width: 640px; max-width: 860px; margin: 0 auto; padding: 34px 38px;
+  background: #fff; color: #111; border: 1px solid #cfd8d3; border-radius: 6px;
+  box-shadow: 0 4px 18px rgba(0, 40, 20, .08);
+  font-family: Georgia, "Times New Roman", serif;
+}
+.sheet-head { display: flex; align-items: center; justify-content: center; gap: 16px; text-align: center; padding-bottom: 14px; border-bottom: 3px double var(--green-700); }
+.sheet-head img { width: 74px; height: 74px; border-radius: 50%; }
+.sheet-head p { font-size: .8rem; color: #333; }
+.sheet-head h2 { font-size: 1.35rem; color: var(--green-800); letter-spacing: .05em; text-transform: uppercase; }
+.sheet-title { text-align: center; margin-top: 16px; font-size: 1.25rem; letter-spacing: .22em; text-transform: uppercase; }
+.sheet-sub { text-align: center; color: #444; font-size: .9rem; margin-bottom: 16px; }
+
+.sheet-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 26px; margin-bottom: 16px; font-size: .9rem; }
+.sheet-info > div { border-bottom: 1px solid #888; padding-bottom: 2px; }
+.sheet-info dt { font-size: .66rem; text-transform: uppercase; letter-spacing: .09em; color: #555; font-family: "Segoe UI", Arial, sans-serif; }
+.sheet-info dd { font-weight: 700; }
+
+.sheet-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.sheet-table th, .sheet-table td { border: 1px solid #777; padding: 8px 10px; vertical-align: middle; }
+.sheet-table th { background: #e9f3ed; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; text-align: center; font-family: "Segoe UI", Arial, sans-serif; }
+.sheet-table td.c { text-align: center; }
+.sheet-table tr.is-you td { background: #fffbe0; }
+.sheet-table .req-name strong { display: block; }
+.sheet-table .req-name small { color: #555; font-size: .74rem; }
+
+.sig-cell { text-align: center; min-width: 190px; }
+.sig-cell .sig-img { height: 46px; display: flex; align-items: flex-end; justify-content: center; }
+.sig-cell .sig-img img { max-height: 46px; max-width: 150px; object-fit: contain; }
+.sig-cell .sig-line { border-top: 1px solid #222; margin: 2px 10px 3px; }
+.sig-cell strong { display: block; font-size: .76rem; text-transform: uppercase; }
+.sig-cell small { display: block; font-size: .68rem; color: #444; }
+.sig-empty { color: #999; font-style: italic; font-size: .8rem; }
+.sig-empty.rej { color: #a3161b; font-style: normal; font-weight: 700; }
+
+.sheet-result { margin-top: 18px; text-align: center; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; padding: 10px; border: 3px solid; border-radius: 6px; font-family: "Segoe UI", Arial, sans-serif; font-size: .95rem; }
+.sheet-result.cleared { color: #05603a; border-color: #05603a; }
+.sheet-result.open { color: #7a5d00; border-color: #c9a227; }
+.sheet-result small { display: block; letter-spacing: .04em; font-weight: 600; font-size: .74rem; text-transform: none; margin-top: 2px; }
+.sheet-foot { margin-top: 14px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .72rem; color: #444; font-family: "Segoe UI", Arial, sans-serif; }
+
+/* ---------- Print: only the clearance sheet ---------- */
+@media print {
+  @page { margin: 12mm; }
+  body { background: #fff; }
+  .sidebar, .topbar, .app-foot, .sb-overlay, .no-print, .page-head, .alert { display: none !important; }
+  .app { display: block; }
+  .content { padding: 0; max-width: none; }
+  .card.sheet-card { border: 0; padding: 0; margin: 0; }
+  .sheet-wrap { overflow: visible; padding: 0; }
+  .sheet { border: 0; box-shadow: none; min-width: 0; max-width: none; padding: 0; }
+  .sheet, .sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sheet-table tr.is-you td { background: transparent; }
+}
+
+@media (max-width: 620px) {
+  .t-side { justify-items: start; grid-column: 2; }
+}
+
+/* ---------- QR + footer of the sheet (Phase 8) ---------- */
+.sheet-bottom { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-family: "Segoe UI", Arial, sans-serif; font-size: .74rem; color: #333; }
+.sheet-bottom p { margin: 2px 0; }
+.sheet-bottom .fine { color: #666; font-size: .68rem; max-width: 520px; }
+.sheet-qr { width: 84px; height: 84px; flex-shrink: 0; border: 1px solid #ccc; padding: 3px; background: #fff; }

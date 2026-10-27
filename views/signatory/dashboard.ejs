@@ -1,0 +1,81 @@
+<%- include('../layouts/app-top', { title: title, active: 'dashboard' }) %>
+<% const hasSig = !!currentUser.signature_path; %>
+
+<section class="welcome">
+  <h1>Welcome, <%= currentUser.first_name %>!</h1>
+  <p>
+    <%= currentUser.office_name || 'Signatory' %><% if (currentUser.position_title) { %> &middot; <%= currentUser.position_title %><% } %><br />
+    Review the students waiting for your signature.
+  </p>
+  <span class="badge badge-signatory">Signatory</span>
+</section>
+
+<% if (!hasSig) { %>
+  <div class="alert alert-info" role="status">
+    You have not set up your e-signature yet. You will need it to approve requests.
+    <a href="/signatory/signature">Set up my e-signature</a>.
+  </div>
+<% } %>
+
+<div class="stat-grid">
+  <div class="stat"><span class="stat-ic gold"><%- icon('clock') %></span><div><strong><%= stats.pending %></strong><span>Waiting for you</span></div></div>
+  <div class="stat"><span class="stat-ic green"><%- icon('checkc') %></span><div><strong><%= stats.approved %></strong><span>Approved</span></div></div>
+  <div class="stat"><span class="stat-ic red"><%- icon('file') %></span><div><strong><%= stats.rejected %></strong><span>Returned</span></div></div>
+  <div class="stat"><span class="stat-ic blue"><%- icon('pen') %></span><div><strong><%= hasSig ? 'Ready' : 'Missing' %></strong><span>E-signature</span></div></div>
+</div>
+
+<div class="two-col">
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h3>Requests waiting for you</h3>
+        <p class="card-sub">Oldest first. Press Review to approve or return a request.</p>
+      </div>
+      <a class="link-more" href="/signatory/requests">View all</a>
+    </div>
+    <%- include('_pending-table', {
+      rows: recent,
+      emptyTitle: 'No pending requests',
+      emptyText: 'New requests from students will appear here.'
+    }) %>
+  </section>
+
+  <div>
+    <section class="card">
+      <div class="card-head">
+        <div><h3>My e-signature</h3></div>
+        <a class="link-more" href="/signatory/signature"><%= hasSig ? 'Change' : 'Set up' %></a>
+      </div>
+      <div class="sig-stage">
+        <% if (hasSig) { %>
+          <img src="/files/signature/<%= currentUser.signature_path %>" alt="Your e-signature" />
+        <% } else { %>
+          <span>No signature yet</span>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div><h3>Recent notifications</h3></div>
+        <a class="link-more" href="/signatory/notifications">View all</a>
+      </div>
+      <% if (!notifications.length) { %>
+        <div class="empty"><p>You have no notifications yet.</p></div>
+      <% } else { %>
+        <ul class="notif-list">
+          <% notifications.forEach(function (n) { %>
+            <li class="notif compact<%= n.is_read ? '' : ' unread' %>">
+              <div class="notif-body">
+                <strong><%= n.title %></strong>
+                <small><%= fmtDateTime(n.created_at) %></small>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../layouts/app-bottom') %>

@@ -1,0 +1,94 @@
+<%- include('../layouts/app-top', { title: title, active: 'users' }) %>
+
+<div class="page-head">
+  <h1>Users</h1>
+  <p><%= total %> account<%= total === 1 ? '' : 's' %> found.</p>
+  <div class="page-actions">
+    <a class="btn btn-primary btn-sm" href="/admin/users/new">Add user</a>
+    <a class="btn btn-outline btn-sm" href="/admin/users/import">Import from CSV</a>
+  </div>
+</div>
+
+<section class="card">
+  <form class="filters" method="get" action="/admin/users" role="search">
+    <div class="field grow">
+      <label for="q">Search</label>
+      <input class="input" type="search" id="q" name="q" value="<%= q %>" placeholder="Name, email, or ID number" maxlength="60" />
+    </div>
+    <div class="field">
+      <label for="role">Role</label>
+      <select class="input" id="role" name="role">
+        <option value="">All roles</option>
+        <% ['student', 'signatory', 'admin'].forEach(function (r) { %><option value="<%= r %>" <%= role === r ? 'selected' : '' %>><%= r.charAt(0).toUpperCase() + r.slice(1) %></option><% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label for="status">Status</label>
+      <select class="input" id="status" name="status">
+        <option value="">Any status</option>
+        <option value="active" <%= status === 'active' ? 'selected' : '' %>>Active</option>
+        <option value="disabled" <%= status === 'disabled' ? 'selected' : '' %>>Disabled</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="college">College</label>
+      <select class="input" id="college" name="college">
+        <option value="">All colleges</option>
+        <% colleges.forEach(function (c) { %><option value="<%= c.id %>" <%= college === c.id ? 'selected' : '' %>><%= c.code %></option><% }) %>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+    <a class="btn btn-outline btn-sm" href="/admin/users">Clear</a>
+  </form>
+
+  <% if (!rows.length) { %>
+    <div class="empty"><%- icon('users') %><h4>No users found</h4><p>Try different filters.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Role</th><th>Office / Program</th><th>Status</th><th>Last login</th><th></th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (u) { %>
+            <tr class="<%= u.status === 'disabled' ? 'dim' : '' %>">
+              <td>
+                <strong><%= u.last_name %>, <%= u.first_name %></strong>
+                <span class="sub"><%= u.email %><% if (u.id_number) { %> &middot; <%= u.id_number %><% } %></span>
+              </td>
+              <td><span class="badge badge-<%= u.role %>"><%= u.role %></span></td>
+              <td>
+                <% if (u.role === 'student') { %><%= u.program_code %><span class="sub"><%= u.college_code %></span>
+                <% } else if (u.role === 'signatory') { %><%= u.office_name %><% if (u.college_code) { %><span class="sub"><%= u.college_code %><%= u.program_code ? ' / ' + u.program_code : '' %></span><% } %>
+                <% } else { %>&mdash;<% } %>
+              </td>
+              <td>
+                <span class="pill <%= u.status === 'active' ? 'pill-approved' : 'pill-rejected' %>"><%= u.status %></span>
+                <% if (u.must_change_password) { %><span class="sub">Must change password</span><% } %>
+              </td>
+              <td class="nowrap"><%= u.last_login_at ? fmtDateTime(u.last_login_at) : 'Never' %></td>
+              <td>
+                <div class="cell-actions">
+                  <a class="btn btn-outline btn-sm" href="/admin/users/<%= u.id %>/edit">Edit</a>
+                  <% if (u.id !== currentUser.id) { %>
+                    <form class="inline-form" method="post" action="/admin/users/<%= u.id %>/reset-password"
+                          onsubmit="return confirm('Reset this user\'s password? A new temporary password will be shown once.');">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                      <button class="btn btn-outline btn-sm" type="submit">Reset password</button>
+                    </form>
+                    <form class="inline-form" method="post" action="/admin/users/<%= u.id %>/toggle"
+                          onsubmit="return confirm('<%= u.status === 'active' ? 'Disable this account? The user will not be able to log in.' : 'Enable this account again?' %>');">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                      <button class="btn <%= u.status === 'active' ? 'btn-danger' : 'btn-outline' %> btn-sm" type="submit"><%= u.status === 'active' ? 'Disable' : 'Enable' %></button>
+                    </form>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('_pager', { page: page, pages: pages, qs: qs }) %>
+  <% } %>
+</section>
+
+<%- include('../layouts/app-bottom') %>

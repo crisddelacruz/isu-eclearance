@@ -1,0 +1,84 @@
+<%
+  const R = sheet.request;
+  const S = sheet.student;
+  const st = sheet.settings || {};
+  const hl = (typeof highlight !== 'undefined') ? highlight : 0;
+  const yrs = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', '6th Year'];
+  const fullName = [S.last_name + ',', S.first_name, S.middle_name, S.suffix].filter(Boolean).join(' ');
+%>
+<div class="sheet-wrap">
+  <article class="sheet" aria-label="Student clearance form">
+    <header class="sheet-head">
+      <img src="/images/isu-logo.jpg" alt="" />
+      <div>
+        <p>Republic of the Philippines</p>
+        <h2><%= st.university_name || 'Isabela State University' %></h2>
+        <p><%= st.university_address || 'Echague, Isabela' %></p>
+      </div>
+    </header>
+
+    <h3 class="sheet-title">Student Clearance</h3>
+    <p class="sheet-sub"><%= R.purpose %> &middot; <%= R.semester %>, S.Y. <%= R.school_year %></p>
+
+    <dl class="sheet-info">
+      <div><dt>Name of student</dt><dd><%= fullName %></dd></div>
+      <div><dt>Student ID number</dt><dd><%= S.id_number || '—' %></dd></div>
+      <div><dt>Program</dt><dd><%= S.program_name || '—' %></dd></div>
+      <div><dt>Year level</dt><dd><%= S.year_level ? yrs[S.year_level - 1] : '—' %></dd></div>
+      <div><dt>College</dt><dd><%= S.college_name || '—' %></dd></div>
+      <div><dt>Date requested</dt><dd><%= fmtDate(R.created_at) %></dd></div>
+    </dl>
+
+    <table class="sheet-table">
+      <thead>
+        <tr><th style="width:36px">No.</th><th>Office / Requirement</th><th>Signature over printed name</th><th style="width:96px">Date</th></tr>
+      </thead>
+      <tbody>
+        <% sheet.items.forEach(function (it, i) { %>
+          <tr class="<%= it.id === hl ? 'is-you' : '' %>">
+            <td class="c"><%= i + 1 %></td>
+            <td class="req-name">
+              <strong><%= it.office_name %><% if (it.subject_code) { %> &mdash; <%= it.subject_code %><% } %></strong>
+              <% if (it.subject_title) { %><small><%= it.subject_title %></small><% } %>
+            </td>
+            <td class="sig-cell">
+              <% if (it.status === 'approved') { %>
+                <div class="sig-img"><img src="/files/signature/<%= it.signature_path %>" alt="E-signature of <%= it.signed_name %>" /></div>
+                <div class="sig-line"></div>
+                <strong><%= it.signed_name %></strong>
+                <small><%= it.signed_position %></small>
+              <% } else if (it.status === 'rejected') { %>
+                <span class="sig-empty rej">Returned</span>
+              <% } else { %>
+                <span class="sig-empty">Awaiting signature</span>
+              <% } %>
+            </td>
+            <td class="c"><%= it.status === 'approved' ? fmtDate(it.acted_at) : '' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <% if (R.status === 'completed') { %>
+      <div class="sheet-result cleared">
+        Cleared
+        <small>All offices have signed &middot; <%= fmtDate(R.completed_at) %></small>
+      </div>
+    <% } else { %>
+      <div class="sheet-result open">
+        Not yet cleared
+        <small>Waiting for the remaining offices to sign</small>
+      </div>
+    <% } %>
+
+    <div class="sheet-bottom">
+      <div>
+        <p>Reference no.: <strong><%= R.reference_no %></strong></p>
+        <p>Verification code: <strong><%= R.verification_code %></strong></p>
+        <p>Verify online: <%= appUrl %>/verify</p>
+        <p class="fine"><%= st.clearance_footer || '' %></p>
+      </div>
+      <img class="sheet-qr" src="/verify/<%= R.verification_code %>/qr.png" width="84" height="84" alt="QR code to verify this clearance" />
+    </div>
+  </article>
+</div>

@@ -1,0 +1,39 @@
+<%- include('../layouts/app-top', { title: title, active: 'history' }) %>
+
+<div class="page-head">
+  <h1>Signed History</h1>
+  <p>A record of every request you approved or returned.</p>
+</div>
+
+<section class="card">
+  <% if (!rows.length) { %>
+    <div class="empty">
+      <%- icon('checksq') %>
+      <h4>Nothing here yet</h4>
+      <p>Requests you approve or return will be listed here.</p>
+    </div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Student</th><th>Requirement</th><th>Result</th><th>Date</th><th>Remarks</th><th></th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { %>
+            <tr>
+              <td><strong><%= r.student_name %></strong><span class="sub"><%= r.id_number %></span></td>
+              <td>
+                <%= r.office_name %><% if (r.subject_code) { %> &mdash; <%= r.subject_code %><% } %>
+                <span class="sub"><%= r.purpose %> &middot; <%= r.reference_no %></span>
+              </td>
+              <td><span class="pill <%= pillClass(r.status) %>"><%= statusLabel(r.status) %></span></td>
+              <td><%= fmtDateTime(r.acted_at) %></td>
+              <td><%= r.remarks || '—' %></td>
+              <td><a class="btn btn-outline btn-sm" href="/signatory/requests/<%= r.id %>">View</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../layouts/app-bottom') %>

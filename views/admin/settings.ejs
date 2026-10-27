@@ -1,0 +1,68 @@
+<%- include('../layouts/app-top', { title: title, active: 'settings' }) %>
+<%
+  const bad = (k) => (errors[k] ? ' is-invalid' : '');
+  const msg = (k) => (errors[k] ? '<p class="field-error">' + errors[k] + '</p>' : '');
+%>
+
+<div class="page-head">
+  <h1>Settings</h1>
+  <p>Text printed on clearance forms and PDFs, and system rules.</p>
+</div>
+
+<section class="card form-card">
+  <form method="post" action="/admin/settings" data-once novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <div class="field">
+      <label for="university_name">University name</label>
+      <input class="input<%= bad('university_name') %>" type="text" id="university_name" name="university_name" value="<%= values.university_name || '' %>" required />
+      <%- msg('university_name') %>
+    </div>
+    <div class="field">
+      <label for="university_address">Address</label>
+      <input class="input<%= bad('university_address') %>" type="text" id="university_address" name="university_address" value="<%= values.university_address || '' %>" required />
+      <%- msg('university_address') %>
+    </div>
+    <div class="field">
+      <label for="clearance_footer">Clearance footer note</label>
+      <textarea class="input" id="clearance_footer" name="clearance_footer" maxlength="250"><%= values.clearance_footer || '' %></textarea>
+      <p class="hint">Printed at the bottom of every clearance.</p>
+    </div>
+
+    <h3 class="section-title">Rules</h3>
+    <div class="field">
+      <label class="checkbox">
+        <input type="checkbox" name="enforce_term_dates" value="1" <%= values.enforce_term_dates === '1' ? 'checked' : '' %> />
+        Only accept new clearance requests between the term's open date and deadline
+      </label>
+      <p class="hint">When on, students cannot start a clearance before the open date or after the deadline. Requests already started are not affected. Set the dates under Academic Terms.</p>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Save settings</button>
+  </form>
+</section>
+
+<section class="card form-card danger-zone">
+  <h3>Remove demo accounts</h3>
+  <p class="card-sub">
+    Deletes every account whose email ends in <span class="mono">@isu-demo.local</span> (<strong><%= demoCount %></strong> found),
+    together with their clearance requests and subjects. Do this before going live.
+  </p>
+  <% if (demoCount === 0) { %>
+    <div class="alert alert-success" style="margin:0">No demo accounts remain.</div>
+  <% } else { %>
+    <div class="lock-note">
+      First create <strong>your own administrator account</strong> (Users, Add user, role Administrator) and log in once with it
+      to set your password. Then come back here. If you are logged in as a demo account, you will be signed out.
+    </div>
+    <form method="post" action="/admin/settings/purge-demo" data-once novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <div class="field">
+        <label for="confirm">Type <strong>DELETE DEMO</strong> to confirm</label>
+        <input class="input" type="text" id="confirm" name="confirm" autocomplete="off" required />
+      </div>
+      <button class="btn btn-danger" type="submit">Remove demo accounts</button>
+    </form>
+  <% } %>
+</section>
+
+<%- include('../layouts/app-bottom') %>

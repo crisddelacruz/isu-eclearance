@@ -1,0 +1,38 @@
+<%- include('../layouts/app-top', { title: title, active: 'offices' }) %>
+
+<div class="page-head">
+  <h1>Offices</h1>
+  <p>The offices that sign a clearance, in signing order. Changes apply to <strong>new</strong> requests only.</p>
+  <div class="page-actions"><a class="btn btn-primary btn-sm" href="/admin/offices/new">Add office</a></div>
+</div>
+
+<section class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Order</th><th>Office</th><th>Who signs</th><th>Signatories</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <% rows.forEach(function (o) { %>
+          <tr class="<%= o.is_active ? '' : 'dim' %>">
+            <td><%= o.sort_order %></td>
+            <td><strong><%= o.name %></strong><span class="sub mono"><%= o.code %></span></td>
+            <td>
+              <% if (o.scope === 'instructor') { %>Each subject's instructor
+              <% } else if (o.scope === 'college') { %>Matched by college
+              <% } else if (o.scope === 'program') { %>Matched by program
+              <% } else { %>One office for the whole university<% } %>
+            </td>
+            <td>
+              <%= o.signatories %>
+              <% if (!o.signatories && o.is_active) { %><span class="sub" style="color:#b42318">None, add one</span><% } %>
+            </td>
+            <td><span class="pill <%= o.is_active ? 'pill-approved' : 'pill-rejected' %>"><%= o.is_active ? 'Active' : 'Off' %></span></td>
+            <td><a class="btn btn-outline btn-sm" href="/admin/offices/<%= o.id %>/edit">Edit</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <p class="hint">Turning an office off removes it from new clearances. Clearances that already exist keep their lines.</p>
+</section>
+
+<%- include('../layouts/app-bottom') %>

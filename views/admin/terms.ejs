@@ -1,0 +1,45 @@
+<%- include('../layouts/app-top', { title: title, active: 'terms' }) %>
+
+<div class="page-head">
+  <h1>Academic terms</h1>
+  <p>The <strong>current</strong> term is the one students request clearances for. Subjects are saved per term.</p>
+  <div class="page-actions"><a class="btn btn-primary btn-sm" href="/admin/terms/new">Add term</a></div>
+</div>
+
+<section class="card">
+  <% if (!rows.length) { %>
+    <div class="empty"><%- icon('calendar') %><h4>No terms yet</h4><p>Add your first term.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Term</th><th>Clearance opens</th><th>Deadline</th><th>Requests</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (t) { %>
+            <tr>
+              <td><strong><%= t.school_year %></strong><span class="sub"><%= t.semester %></span></td>
+              <td><%= fmtDate(t.clearance_open_date) %></td>
+              <td><%= fmtDate(t.clearance_deadline) %></td>
+              <td><%= t.requests %><% if (t.in_progress) { %><span class="sub"><%= t.in_progress %> in progress</span><% } %></td>
+              <td><% if (t.is_current) { %><span class="pill pill-approved">Current</span><% } else { %><span class="muted">&mdash;</span><% } %></td>
+              <td>
+                <div class="cell-actions">
+                  <a class="btn btn-outline btn-sm" href="/admin/terms/<%= t.id %>/edit">Edit dates</a>
+                  <% if (!t.is_current) { %>
+                    <form class="inline-form" method="post" action="/admin/terms/<%= t.id %>/current"
+                          onsubmit="return confirm('Make this the current term? Students will start a fresh subject list for it.');">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                      <button class="btn btn-primary btn-sm" type="submit">Make current</button>
+                    </form>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+  <p class="hint">Dates are shown to students. Requests are not blocked outside these dates yet.</p>
+</section>
+
+<%- include('../layouts/app-bottom') %>

@@ -2,9 +2,10 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 const audit = require('../utils/audit');
-const { notify } = require('../utils/notify');
-const { PURPOSES, getCurrentTerm, requestsFor, itemsFor, createClearance } = require('../utils/clearance');
+const { notify, notifySignatories } = require('../utils/notify');
+const { PURPOSES, getCurrentTerm, requestsFor, itemsFor, sheetFor, createClearance } = require('../utils/clearance');
 const { requireRole } = require('../middleware/auth');
+const termWindow = require('../utils/termwindow');
 
 const router = express.Router();
 router.use(requireRole('student')); // every page below is for students only
@@ -64,6 +65,11 @@ router.post('/clearance/request', (req, res) => {
     req.flash('error', 'There is no active academic term right now.');
     return res.redirect('/student/clearance');
   }
+   const closed = termWindow.problem(term);
+  if (closed) {
+    req.flash('error', closed);
+    return res.redirect('/student/clearance');
+  }
   const result = createClearance(req.user, term, (req.body.purpose || '').trim());
   if (result.error) {
     req.flash('error', result.error);
@@ -76,6 +82,7 @@ router.post('/clearance/request', (req, res) => {
     'Your ' + req.body.purpose + ' clearance is now waiting for the offices to sign.',
     '/student/clearance/' + result.id
   );
+  notifySignatories(result.id, null, 'New clearance request'); // tell the offices
   req.flash('success', 'Your clearance request was created. Each office will review it online.');
   res.redirect('/student/clearance/' + result.id);
 });
@@ -85,8 +92,47 @@ router.get('/clearance/:id', (req, res) => {
   if (!request) return notFound(res);
   res.render('student/clearance-detail', {
     title: 'Clearance Details', active: 'clearance',
-    request, items: itemsFor(request.id),
+    request, items: itemsFor(request.id), sheet: sheetFor(request.id),
   });
+});
+
+// Student fixed the problem and asks the office to review again
+router.post('/clearance/:id/items/:itemId/resubmit', (req, res) => {
+  const request = ownRequest(req);
+  if (!request) return notFound(res);
+  const back = '/student/clearance/' + request.id;
+
+  if (request.status !== 'in_progress') {
+    req.flash('error', 'This clearance can no longer be changed.');
+    return res.redirect(back);
+  }
+  const itemId = parseInt(req.params.itemId, 10);
+  const item = db
+    .prepare(`
+      SELECT ci.*, e.instructor_id
+      FROM clearance_items ci LEFT JOIN enrollments e ON e.id = ci.enrollment_id
+      WHERE ci.id = ? AND ci.request_id = ?
+    `)
+    .get(itemId, request.id);
+
+  if (!item || item.status !== 'rejected') {
+    req.flash('error', 'That line is not waiting for your action.');
+    return res.redirect(back);
+  }
+
+  // Back to pending. Instructor lines return to the subject's instructor;
+  // office lines are matched to a signatory again when someone signs.
+  db.prepare(`
+    UPDATE clearance_items
+    SET status = 'pending', remarks = NULL, acted_at = NULL,
+        signed_name = NULL, signed_position = NULL, signature_path = NULL, signatory_id = ?
+    WHERE id = ?
+  `).run(item.instructor_id || null, item.id);
+
+  audit(req, 'ITEM_RESUBMIT', 'Line #' + item.id + ' of request #' + request.id);
+  notifySignatories(request.id, item.id, 'Review requested');
+  req.flash('success', 'Done. The office was notified to review your request again.');
+  res.redirect(back);
 });
 
 router.post('/clearance/:id/cancel', (req, res) => {

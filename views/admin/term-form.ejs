@@ -1,0 +1,70 @@
+<%- include('../layouts/app-top', { title: title, active: 'terms' }) %>
+<%
+  const bad = (k) => (errors[k] ? ' is-invalid' : '');
+  const msg = (k) => (errors[k] ? '<p class="field-error">' + errors[k] + '</p>' : '');
+  const action = isEdit ? '/admin/terms/' + term.id : '/admin/terms';
+%>
+
+<div class="page-head">
+  <a class="link-more" href="/admin/terms">&larr; Back to Terms</a>
+  <h1 style="margin-top:6px"><%= isEdit ? 'Edit term dates' : 'Add term' %></h1>
+</div>
+
+<% if (Object.keys(errors).length) { %>
+  <div class="alert alert-error" role="alert">Please fix the highlighted fields below.</div>
+<% } %>
+
+<section class="card form-card">
+  <form method="post" action="<%= action %>" data-once novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="school_year">School year</label>
+        <% if (isEdit) { %>
+          <div class="readonly-box"><%= values.school_year %></div>
+        <% } else { %>
+          <input class="input<%= bad('school_year') %>" type="text" id="school_year" name="school_year" value="<%= values.school_year %>" placeholder="2026-2027" maxlength="9" required />
+          <%- msg('school_year') %>
+        <% } %>
+      </div>
+      <div class="field">
+        <label for="semester">Semester</label>
+        <% if (isEdit) { %>
+          <div class="readonly-box"><%= values.semester %></div>
+        <% } else { %>
+          <select class="input<%= bad('semester') %>" id="semester" name="semester">
+            <% semesters.forEach(function (s) { %><option value="<%= s %>" <%= values.semester === s ? 'selected' : '' %>><%= s %></option><% }) %>
+          </select>
+          <%- msg('semester') %>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <label for="clearance_open_date">Clearance opens</label>
+        <input class="input<%= bad('open') %>" type="date" id="clearance_open_date" name="clearance_open_date" value="<%= values.open %>" />
+        <%- msg('open') %>
+      </div>
+      <div class="field">
+        <label for="clearance_deadline">Deadline</label>
+        <input class="input<%= bad('deadline') %>" type="date" id="clearance_deadline" name="clearance_deadline" value="<%= values.deadline %>" />
+        <%- msg('deadline') %>
+      </div>
+    </div>
+
+    <% if (!isEdit) { %>
+      <div class="field">
+        <label class="checkbox"><input type="checkbox" name="is_current" value="1" <%= values.is_current ? 'checked' : '' %> /> Make this the current term</label>
+      </div>
+    <% } %>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit"><%= isEdit ? 'Save dates' : 'Add term' %></button>
+      <a class="btn btn-outline" href="/admin/terms">Cancel</a>
+    </div>
+  </form>
+</section>
+
+<%- include('../layouts/app-bottom') %>

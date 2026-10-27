@@ -1,0 +1,113 @@
+<%- include('../partials/head', { title: title, bodyClass: 'verify-page', extraCss: '/css/verify.css' }) %>
+<%- include('../partials/verify-header') %>
+
+<main class="v-main">
+  <section class="v-hero">
+    <span class="v-eyebrow">Verification</span>
+    <h1>Verify a clearance</h1>
+    <p>Check that a clearance issued through ISU eClearance is genuine.</p>
+  </section>
+
+  <section class="v-card v-narrow">
+    <form method="get" action="/verify" novalidate>
+      <div class="field">
+        <label for="code">Verification code</label>
+        <input class="input v-code" type="text" id="code" name="code" maxlength="14"
+               placeholder="e.g. 3FA9C21B7D" autocomplete="off" autofocus required />
+        <p class="hint">10 letters and numbers, printed at the bottom of the clearance.</p>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Verify clearance</button>
+    </form>
+  </section>
+
+  <section class="v-how">
+    <div><b>1</b><h3>Find the code</h3><p>It is printed at the bottom of every clearance, next to the QR code.</p></div>
+    <div><b>2</b><h3>Or scan the QR</h3><p>Point your phone camera at the QR code. It opens the result directly.</p></div>
+    <div><b>3</b><h3>Read the result</h3><p>A genuine, complete clearance shows a green banner and every office that signed.</p></div>
+  </section>
+</main>
+
+<footer class="v-foot">&copy; <%= new Date().getFullYear() %> Isabela State University &middot; ISU eClearance</footer>
+
+<%- include('../partials/foot') %>
+4.3 views/verify/result.ejs (new)
+html
+<%- include('../partials/head', { title: title, bodyClass: 'verify-page', extraCss: '/css/verify.css' }) %>
+<%- include('../partials/verify-header') %>
+<%
+  const R = sheet ? sheet.request : null;
+  const S = sheet ? sheet.student : null;
+  const yrs = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', '6th Year'];
+  const kind = !sheet ? 'bad' : (R.status === 'completed' ? 'ok' : 'warn');
+%>
+
+<main class="v-main">
+  <% if (!sheet) { %>
+    <div class="v-banner bad" role="alert">
+      <span class="v-ic">&#10005;</span>
+      <div>
+        <h1>No clearance found</h1>
+        <p>There is no clearance with the code <strong><%= code.slice(0, 20) %></strong>. Check the code and try again. If it is correct, the document may not be genuine.</p>
+      </div>
+    </div>
+    <div class="v-actions"><a class="btn btn-primary" href="/verify">Try another code</a></div>
+
+  <% } else { %>
+    <div class="v-banner <%= kind %>" role="status">
+      <% if (kind === 'ok') { %>
+        <span class="v-ic">&#10003;</span>
+        <div>
+          <h1>Genuine and complete</h1>
+          <p>This clearance was issued by ISU eClearance and every office has signed it<% if (R.completed_at) { %> (completed <%= fmtDate(R.completed_at) %>)<% } %>.</p>
+        </div>
+      <% } else { %>
+        <span class="v-ic">!</span>
+        <div>
+          <h1>Not complete yet</h1>
+          <p>This clearance exists, but some offices have not signed it. <strong>It is not valid until it is complete.</strong></p>
+        </div>
+      <% } %>
+    </div>
+
+    <section class="v-card">
+      <h2>Clearance details</h2>
+      <dl class="v-info">
+        <div><dt>Student</dt><dd><%= [S.last_name + ',', S.first_name, S.middle_name, S.suffix].filter(Boolean).join(' ') %></dd></div>
+        <div><dt>Student ID</dt><dd><%= maskedId %></dd></div>
+        <div><dt>Program</dt><dd><%= S.program_name || '-' %></dd></div>
+        <div><dt>Year level</dt><dd><%= S.year_level ? yrs[S.year_level - 1] : '-' %></dd></div>
+        <div><dt>College</dt><dd><%= S.college_name || '-' %></dd></div>
+        <div><dt>Purpose</dt><dd><%= R.purpose %></dd></div>
+        <div><dt>Term</dt><dd><%= R.school_year %>, <%= R.semester %></dd></div>
+        <div><dt>Reference no.</dt><dd><%= R.reference_no %></dd></div>
+        <div><dt>Date requested</dt><dd><%= fmtDate(R.created_at) %></dd></div>
+        <div><dt>Verification code</dt><dd><%= R.verification_code %></dd></div>
+      </dl>
+    </section>
+
+    <section class="v-card">
+      <h2>Offices</h2>
+      <div class="v-scroll">
+        <table class="v-table">
+          <thead><tr><th>Office / requirement</th><th>Status</th><th>Signed by</th><th>Date</th></tr></thead>
+          <tbody>
+            <% sheet.items.forEach(function (it) { %>
+              <tr>
+                <td><strong><%= it.office_name %><% if (it.subject_code) { %> &mdash; <%= it.subject_code %><% } %></strong></td>
+                <td><span class="pill <%= pillClass(it.status) %>"><%= statusLabel(it.status) %></span></td>
+                <td><%= it.status === 'approved' ? it.signed_name : '-' %></td>
+                <td><%= it.status === 'approved' ? fmtDate(it.acted_at) : '-' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="v-actions"><a class="btn btn-outline" href="/verify">Verify another clearance</a></div>
+  <% } %>
+</main>
+
+<footer class="v-foot">&copy; <%= new Date().getFullYear() %> Isabela State University &middot; ISU eClearance</footer>
+
+<%- include('../partials/foot') %>

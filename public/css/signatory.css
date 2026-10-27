@@ -1,0 +1,51 @@
+/* ISU eClearance: signatory pages (loaded after pages.css) */
+
+.search { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.search .input { max-width: 380px; }
+
+.table .sub { display: block; color: var(--muted); font-size: .8rem; }
+.table td strong { color: var(--ink); }
+
+/* ---------- Signature preview (checkerboard shows transparency) ---------- */
+.sig-stage {
+  border: 2px dashed var(--line); border-radius: 14px; min-height: 160px; padding: 16px;
+  display: grid; place-items: center; text-align: center; color: var(--muted);
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #f1f5f3 25%, transparent 25%),
+    linear-gradient(-45deg, #f1f5f3 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f1f5f3 75%),
+    linear-gradient(-45deg, transparent 75%, #f1f5f3 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+.sig-stage img { max-width: 100%; max-height: 140px; object-fit: contain; }
+
+.sig-sample { margin-top: 16px; padding: 18px 16px; border: 1px solid var(--line); border-radius: 12px; text-align: center; background: #fff; }
+.sig-sample small.cap { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; margin-bottom: 8px; text-align: left; }
+.sig-sample .sig-img { height: 62px; display: flex; justify-content: center; align-items: flex-end; }
+.sig-sample .sig-img img { max-height: 62px; max-width: 70%; object-fit: contain; }
+.sig-sample .rule { border-top: 1.5px solid var(--ink); width: 70%; margin: 2px auto 6px; }
+.sig-sample strong { display: block; text-transform: uppercase; font-size: .88rem; }
+.sig-sample span { color: var(--muted); font-size: .8rem; }
+
+/* ---------- Tabs ---------- */
+.tabs { display: flex; gap: 6px; background: var(--green-50); padding: 5px; border-radius: 12px; margin-bottom: 18px; }
+.tab { flex: 1; border: 0; background: none; padding: 10px 12px; border-radius: 9px; font: inherit; font-weight: 700; color: var(--green-800); cursor: pointer; }
+.tab:hover { background: rgba(255, 255, 255, .6); }
+.tab.active { background: #fff; box-shadow: 0 2px 8px rgba(0, 60, 30, .14); }
+.tab:focus-visible { outline: 3px solid var(--gold); outline-offset: 1px; }
+.tab-panel[hidden] { display: none; }
+
+/* ---------- Drawing pad ---------- */
+.pad { position: relative; border: 2px dashed var(--line); border-radius: 14px; background: #fff; overflow: hidden; }
+.pad canvas { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; }
+.pad-line { position: absolute; left: 6%; right: 6%; bottom: 26%; border-top: 1px solid #c8d5ce; pointer-events: none; }
+.pad-hint { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: .76rem; color: var(--muted); pointer-events: none; }
+
+.upload-preview { margin-top: 12px; }
+.upload-preview[hidden] { display: none; }
+.inline-msg { min-height: 1.3em; font-size: .88rem; font-weight: 600; margin: 8px 0 4px; color: var(--muted); }
+.inline-msg.err { color: #b42318; }
+
+.tips { margin: 14px 0 0; padding-left: 18px; color: var(--muted); font-size: .86rem; display: grid; gap: 4px; }

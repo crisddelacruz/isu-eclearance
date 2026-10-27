@@ -45,6 +45,34 @@ function itemsFor(requestId) {
     .all(requestId);
 }
 
+// Everything the printed clearance template needs.
+function sheetFor(requestId) {
+  const request = db
+    .prepare(`
+      SELECT r.*, t.school_year, t.semester
+      FROM clearance_requests r JOIN academic_terms t ON t.id = r.term_id
+      WHERE r.id = ?
+    `)
+    .get(requestId);
+  if (!request) return null;
+
+  const student = db
+    .prepare(`
+      SELECT u.id, u.id_number, u.first_name, u.middle_name, u.last_name, u.suffix, u.year_level,
+             c.name AS college_name, p.name AS program_name, p.code AS program_code
+      FROM users u
+      LEFT JOIN colleges c ON c.id = u.college_id
+      LEFT JOIN programs p ON p.id = u.program_id
+      WHERE u.id = ?
+    `)
+    .get(request.student_id);
+
+  const settings = {};
+  db.prepare('SELECT key, value FROM settings').all().forEach((s) => { settings[s.key] = s.value; });
+
+  return { request, student, items: itemsFor(requestId), settings };
+}
+
 // Creates a clearance request and all its signing lines.
 // Returns { id } on success or { error } with a message for the student.
 function createClearance(student, term, purpose) {
@@ -95,7 +123,7 @@ function createClearance(student, term, purpose) {
         enrollments.forEach((e) => addItem.run(id, o.id, e.id, e.instructor_id));
       } else {
         // University, college, and program offices are matched to a signatory
-        // at signing time (Phase 6), so signatory_id stays empty here.
+        // when someone signs, so signatory_id stays empty here.
         addItem.run(id, o.id, null, null);
       }
     });
@@ -105,4 +133,4 @@ function createClearance(student, term, purpose) {
   return { id: run() };
 }
 
-module.exports = { PURPOSES, getCurrentTerm, requestsFor, itemsFor, createClearance };
+module.exports = { PURPOSES, getCurrentTerm, requestsFor, itemsFor, sheetFor, createClearance };

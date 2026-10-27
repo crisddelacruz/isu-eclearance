@@ -1,7 +1,8 @@
-<%- include('../partials/head', { title: title, bodyClass: 'app-body', extraCss: ['/css/app.css', '/css/pages.css'] }) %>
+<%- include('../partials/head', { title: title, bodyClass: 'app-body', extraCss: ['/css/app.css', '/css/pages.css', '/css/signatory.css', '/css/clearance.css', '/css/admin.css'] }) %>
 <%
   const role = currentUser.role;
   const unread = (typeof unreadCount !== 'undefined') ? unreadCount : 0;
+  const pend = (typeof pendingCount !== 'undefined') ? pendingCount : 0;
   const NAV = {
     student: [
       { key: 'dashboard',     label: 'Dashboard',     href: '/student/dashboard',     icon: 'home' },
@@ -11,20 +12,21 @@
       { key: 'profile',       label: 'My Profile',    href: '/student/profile',       icon: 'user' },
     ],
     signatory: [
-      { key: 'dashboard', label: 'Dashboard',        href: '/signatory/dashboard', icon: 'home' },
-      { key: 'pending',   label: 'Pending Requests', href: '/signatory/requests',  icon: 'clock', soon: true },
-      { key: 'history',   label: 'Signed History',   href: '/signatory/history',   icon: 'checksq', soon: true },
-      { key: 'signature', label: 'My E-Signature',   href: '/signatory/signature', icon: 'pen', soon: true },
-      { key: 'profile',   label: 'My Profile',       href: '/signatory/profile',   icon: 'user', soon: true },
+      { key: 'dashboard',     label: 'Dashboard',        href: '/signatory/dashboard',     icon: 'home' },
+      { key: 'pending',       label: 'Pending Requests', href: '/signatory/requests',      icon: 'clock', badge: pend },
+      { key: 'history',       label: 'Signed History',   href: '/signatory/history',       icon: 'checksq' },
+      { key: 'signature',     label: 'My E-Signature',   href: '/signatory/signature',     icon: 'pen', badge: currentUser.signature_path ? 0 : '!' },
+      { key: 'notifications', label: 'Notifications',    href: '/signatory/notifications', icon: 'bell', badge: unread },
+      { key: 'profile',       label: 'My Profile',       href: '/signatory/profile',       icon: 'user' },
     ],
     admin: [
       { key: 'dashboard', label: 'Dashboard',      href: '/admin/dashboard', icon: 'home' },
-      { key: 'users',     label: 'Users',          href: '/admin/users',     icon: 'users', soon: true },
-      { key: 'offices',   label: 'Offices',        href: '/admin/offices',   icon: 'building', soon: true },
-      { key: 'terms',     label: 'Academic Terms', href: '/admin/terms',     icon: 'calendar', soon: true },
-      { key: 'reports',   label: 'Reports',        href: '/admin/reports',   icon: 'chart', soon: true },
-      { key: 'audit',     label: 'Audit Logs',     href: '/admin/audit',     icon: 'clipboard', soon: true },
-      { key: 'settings',  label: 'Settings',       href: '/admin/settings',  icon: 'sliders', soon: true },
+      { key: 'users',     label: 'Users',          href: '/admin/users',     icon: 'users' },
+      { key: 'offices',   label: 'Offices',        href: '/admin/offices',   icon: 'building' },
+      { key: 'terms',     label: 'Academic Terms', href: '/admin/terms',     icon: 'calendar' },
+      { key: 'reports',   label: 'Reports',        href: '/admin/reports',   icon: 'chart' },
+      { key: 'audit',     label: 'Audit Logs',     href: '/admin/audit',     icon: 'clipboard' },
+      { key: 'settings',  label: 'Settings',       href: '/admin/settings',  icon: 'sliders' },
     ],
   };
   const items = NAV[role] || [];
@@ -33,6 +35,7 @@
   const roleLabel = role === 'student' ? 'Student'
                   : role === 'admin' ? 'Administrator'
                   : (currentUser.office_name || 'Signatory');
+  const bellHref = role === 'student' ? '/student/notifications' : '/signatory/notifications';
 %>
 
 <div class="app">
@@ -55,7 +58,7 @@
           <a class="sb-link<%= activeKey === it.key ? ' active' : '' %>" href="<%= it.href %>"
              <%= activeKey === it.key ? 'aria-current="page"' : '' %>>
             <%- icon(it.icon) %><span><%= it.label %></span>
-            <% if (it.badge > 0) { %><em class="sb-badge"><%= it.badge > 99 ? '99+' : it.badge %></em><% } %>
+            <% if (it.badge) { %><em class="sb-badge"><%= (typeof it.badge === 'number' && it.badge > 99) ? '99+' : it.badge %></em><% } %>
           </a>
         <% } %>
       <% }) %>
@@ -77,8 +80,8 @@
       </button>
       <h2 class="topbar-title"><%= title %></h2>
 
-      <% if (role === 'student') { %>
-        <a class="icon-btn bell" href="/student/notifications" aria-label="Notifications (<%= unread %> unread)">
+      <% if (role === 'student' || role === 'signatory') { %>
+        <a class="icon-btn bell" href="<%= bellHref %>" aria-label="Notifications (<%= unread %> unread)">
           <%- icon('bell') %>
           <% if (unread > 0) { %><span class="bell-count"><%= unread > 99 ? '99+' : unread %></span><% } %>
         </a>
@@ -98,6 +101,7 @@
             <strong><%= currentUser.first_name %> <%= currentUser.last_name %></strong>
             <small><%= currentUser.email %></small>
           </div>
+          <a class="menu-link" href="/account/password"><%- icon('shield') %> Change password</a>
           <form method="post" action="/logout">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
             <button type="submit" class="menu-item"><%- icon('logout') %> Log out</button>

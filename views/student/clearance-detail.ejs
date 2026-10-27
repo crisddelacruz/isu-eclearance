@@ -1,12 +1,23 @@
 <%- include('../layouts/app-top', { title: title, active: 'clearance' }) %>
 
-<div class="page-head">
+<div class="page-head no-print">
   <a class="link-more" href="/student/clearance">&larr; Back to My Clearance</a>
   <h1 style="margin-top:6px"><%= request.purpose %> Clearance</h1>
   <p>Reference no. <strong><%= request.reference_no %></strong></p>
 </div>
 
-<section class="card">
+<% if (request.status === 'completed') { %>
+  <div class="alert alert-success no-print" role="status">
+    Your clearance is complete. Every office has signed it. Download the PDF below, or print the form.
+  </div>
+<% } else if (request.rejected > 0) { %>
+  <div class="alert alert-error no-print" role="alert">
+    An office returned your request. Read the remarks below, settle the issue with that office,
+    then press <strong>Ask for review again</strong>.
+  </div>
+<% } %>
+
+<section class="card no-print">
   <div class="card-head">
     <div class="meta-row">
       <div><small>Term</small><strong><%= request.school_year %>, <%= request.semester %></strong></div>
@@ -17,16 +28,23 @@
   </div>
 
   <div class="progress" role="progressbar" aria-valuenow="<%= request.percent %>" aria-valuemin="0" aria-valuemax="100">
-    <span style="width: <%= request.percent %>%"></span>
+    <span></span>
   </div>
   <div class="progress-meta">
     <span><%= request.approved %> of <%= request.total %> signatures</span><span><%= request.percent %>%</span>
   </div>
 
   <div class="actions" style="margin-top:16px">
-    <button class="btn btn-outline btn-sm" type="button" disabled title="PDF download is added in Phase 8">
-      <%- icon('download') %> Download PDF (coming in Phase 8)
-    </button>
+    <% if (request.status === 'completed') { %>
+      <a class="btn btn-primary btn-sm" href="/student/clearance/<%= request.id %>/pdf">
+        <%- icon('download') %> Download PDF
+      </a>
+    <% } else { %>
+      <button class="btn btn-outline btn-sm" type="button" disabled title="Available once every office has signed">
+        <%- icon('download') %> Download PDF
+      </button>
+    <% } %>
+    <button class="btn btn-outline btn-sm" type="button" onclick="window.print()">Print form</button>
 
     <% if (request.status === 'in_progress' && request.approved === 0) { %>
       <form class="inline-form" method="post" action="/student/clearance/<%= request.id %>/cancel"
@@ -36,12 +54,30 @@
       </form>
     <% } %>
   </div>
+
+  <% if (request.status === 'completed') { %>
+    <p class="hint">Anyone can check that this clearance is genuine at
+      <a href="/verify/<%= request.verification_code %>"><%= appUrl %>/verify</a>
+      using the code above, or by scanning the QR code on the PDF.</p>
+  <% } else { %>
+    <p class="hint">The PDF becomes available once every office has signed.</p>
+  <% } %>
 </section>
 
-<section class="card">
+<section class="card no-print">
   <h3>Signing list</h3>
   <p class="card-sub">Every office listed here must sign before your clearance is complete.</p>
-  <%- include('_items', { items: items }) %>
+  <%- include('_items', { items: items, resubmitFor: request.status === 'in_progress' ? request.id : null }) %>
+</section>
+
+<section class="card sheet-card">
+  <div class="card-head no-print">
+    <div>
+      <h3>Clearance form</h3>
+      <p class="card-sub">Signatures appear in their boxes as each office approves.</p>
+    </div>
+  </div>
+  <%- include('../partials/clearance-sheet', { sheet: sheet }) %>
 </section>
 
 <%- include('../layouts/app-bottom') %>

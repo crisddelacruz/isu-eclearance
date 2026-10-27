@@ -1,0 +1,42 @@
+<%- include('../partials/head', { title: 'Reset password', bodyClass: 'auth-page' }) %>
+
+<div class="auth">
+  <%- include('../partials/auth-aside') %>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <% if (!valid) { %>
+        <h1>Link not valid</h1>
+        <p class="sub">This reset link has expired or was already used.</p>
+        <a class="btn btn-primary btn-block" href="/forgot">Request a new link</a>
+      <% } else { %>
+        <h1>Choose a new password</h1>
+        <p class="sub">Use at least 8 characters, with letters and numbers.</p>
+
+        <%- include('../partials/flash') %>
+
+        <form method="post" action="" novalidate data-once>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <div class="field">
+            <label for="new_password">New password</label>
+            <div class="pw-wrap">
+              <input class="input" type="password" id="new_password" name="new_password" autocomplete="new-password" autofocus required />
+              <button type="button" class="pw-toggle" data-target="new_password" aria-pressed="false">Show</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="confirm_password">Confirm new password</label>
+            <div class="pw-wrap">
+              <input class="input" type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required />
+              <button type="button" class="pw-toggle" data-target="confirm_password" aria-pressed="false">Show</button>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit">Change password</button>
+        </form>
+      <% } %>
+      <p class="switch"><a href="/login">Back to log in</a></p>
+    </div>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>

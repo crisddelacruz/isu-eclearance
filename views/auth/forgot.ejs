@@ -1,0 +1,33 @@
+<%- include('../partials/head', { title: 'Forgot password', bodyClass: 'auth-page' }) %>
+
+<div class="auth">
+  <%- include('../partials/auth-aside') %>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <h1>Forgot your password?</h1>
+      <p class="sub">Enter your email address and we will send you a link to choose a new password.</p>
+
+      <%- include('../partials/flash') %>
+
+      <% if (!mailEnabled) { %>
+        <div class="alert alert-info" role="status">
+          Password reset by email is not available right now. Please contact your college or the system administrator.
+        </div>
+      <% } else { %>
+        <form method="post" action="/forgot" novalidate data-once>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <div class="field">
+            <label for="email">Email address</label>
+            <input class="input" type="email" id="email" name="email" autocomplete="email" autofocus required />
+          </div>
+          <button class="btn btn-primary btn-block" type="submit">Send reset link</button>
+        </form>
+      <% } %>
+
+      <p class="switch"><a href="/login">Back to log in</a></p>
+    </div>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>

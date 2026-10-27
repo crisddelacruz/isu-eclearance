@@ -1,0 +1,78 @@
+<%- include('../layouts/app-top', { title: title, active: 'reports' }) %>
+
+<div class="page-head">
+  <h1>Reports</h1>
+  <p>How clearances are doing in each term.</p>
+</div>
+
+<section class="card">
+  <form class="filters" method="get" action="/admin/reports">
+    <div class="field">
+      <label for="term">Term</label>
+      <select class="input" id="term" name="term">
+        <% terms.forEach(function (t) { %><option value="<%= t.id %>" <%= term && term.id === t.id ? 'selected' : '' %>><%= t.school_year %>, <%= t.semester %><%= t.is_current ? ' (current)' : '' %></option><% }) %>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-sm" type="submit">Show</button>
+    <% if (term) { %><a class="btn btn-outline btn-sm" href="/admin/reports/export.csv?term=<%= term.id %>"><%- icon('download') %> Export CSV</a><% } %>
+  </form>
+</section>
+
+<% if (!term) { %>
+  <div class="alert alert-info">There are no terms yet.</div>
+<% } else { %>
+  <div class="stat-grid">
+    <div class="stat"><span class="stat-ic blue"><%- icon('file') %></span><div><strong><%= totals.total %></strong><span>Total requests</span></div></div>
+    <div class="stat"><span class="stat-ic gold"><%- icon('clock') %></span><div><strong><%= totals.in_progress %></strong><span>In progress</span></div></div>
+    <div class="stat"><span class="stat-ic green"><%- icon('checkc') %></span><div><strong><%= totals.completed %></strong><span>Completed</span></div></div>
+    <div class="stat"><span class="stat-ic red"><%- icon('bell') %></span><div><strong><%= totals.returned %></strong><span>Lines returned</span></div></div>
+  </div>
+
+  <section class="card">
+    <h3>By college</h3>
+    <p class="card-sub">Requests made by students of each college.</p>
+    <% if (!byCollege.length) { %><div class="empty"><p>No requests in this term.</p></div><% } else { %>
+      <div class="table-wrap">
+        <table class="table report-table">
+          <thead><tr><th>College</th><th class="num">Requests</th><th class="num">In progress</th><th class="num">Completed</th><th class="num">Completion</th></tr></thead>
+          <tbody>
+            <% byCollege.forEach(function (c) { %>
+              <tr><td><strong><%= c.code %></strong><span class="sub"><%= c.name %></span></td>
+                <td class="num"><%= c.total %></td><td class="num"><%= c.in_progress %></td><td class="num"><%= c.completed %></td>
+                <td class="num"><%= c.total ? Math.round(c.completed / c.total * 100) : 0 %>%</td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+
+  <div class="two-col">
+    <section class="card">
+      <h3>By program</h3>
+      <% if (!byProgram.length) { %><div class="empty"><p>No requests in this term.</p></div><% } else { %>
+        <div class="table-wrap">
+          <table class="table report-table">
+            <thead><tr><th>Program</th><th class="num">Requests</th><th class="num">In progress</th><th class="num">Completed</th></tr></thead>
+            <tbody>
+              <% byProgram.forEach(function (p) { %>
+                <tr><td><strong><%= p.code %></strong><span class="sub"><%= p.name %></span></td>
+                  <td class="num"><%= p.total %></td><td class="num"><%= p.in_progress %></td><td class="num"><%= p.completed %></td></tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+
+    <section class="card">
+      <h3>Pending lines by office</h3>
+      <p class="card-sub">Offices with the most students waiting.</p>
+      <% if (!byOffice.length) { %><div class="empty"><p>Nothing is waiting.</p></div><% } else { %>
+        <ul class="rank"><% byOffice.forEach(function (o) { %><li><span><%= o.name %></span><b><%= o.n %></b></li><% }) %></ul>
+      <% } %>
+    </section>
+  </div>
+<% } %>
+
+<%- include('../layouts/app-bottom') %>

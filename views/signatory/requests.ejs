@@ -1,0 +1,49 @@
+<%- include('../layouts/app-top', { title: title, active: 'pending' }) %>
+
+<div class="page-head">
+  <h1>Pending Requests</h1>
+  <p>Students waiting for your signature. Oldest requests are shown first.</p>
+</div>
+
+<% if (!currentUser.signature_path) { %>
+  <div class="alert alert-info" role="status">
+    You need an e-signature before you can approve. <a href="/signatory/signature">Set up my e-signature</a>.
+  </div>
+<% } %>
+
+<section class="card">
+  <form class="search" method="get" action="/signatory/requests" role="search">
+    <input class="input" type="search" name="q" value="<%= search %>"
+           placeholder="Search by student name or ID number" maxlength="60" aria-label="Search requests" />
+    <button class="btn btn-primary btn-sm" type="submit">Search</button>
+    <% if (search) { %><a class="btn btn-outline btn-sm" href="/signatory/requests">Clear</a><% } %>
+  </form>
+
+  <form id="bulkForm" method="post" action="/signatory/requests/approve-selected"
+        onsubmit="return confirm('Approve all selected requests with your e-signature?');">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+    <% if (rows.length) { %>
+      <div class="bulk-bar">
+        <button class="btn btn-primary btn-sm" type="submit" id="bulkBtn" disabled>Approve selected</button>
+        <span class="count" id="bulkCount"></span>
+        <span class="hint" style="margin:0">Or press <strong>Review</strong> on a row to check details, or to return a request.</span>
+      </div>
+    <% } %>
+
+    <%- include('_pending-table', {
+      rows: rows,
+      selectable: true,
+      emptyTitle: search ? 'No matching requests' : 'No pending requests',
+      emptyText: search ? 'Try a different name or ID number.' : 'New requests from students will appear here.'
+    }) %>
+  </form>
+
+  <% if (rows.length) { %>
+    <p class="hint">Showing <%= rows.length %> request<%= rows.length === 1 ? '' : 's' %>.</p>
+  <% } %>
+</section>
+
+<script src="/js/signing.js" defer></script>
+
+<%- include('../layouts/app-bottom') %>

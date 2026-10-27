@@ -1,0 +1,39 @@
+<%
+  const canResubmit = (typeof resubmitFor !== 'undefined') && resubmitFor;
+%>
+<ol class="track">
+  <% items.forEach(function (it, i) { %>
+    <li>
+      <span class="t-dot <%= it.status %>">
+        <% if (it.status === 'approved') { %>&#10003;<% } else if (it.status === 'rejected') { %>&#10005;<% } else { %><%= i + 1 %><% } %>
+      </span>
+
+      <div class="t-main">
+        <strong><%= it.office_name %><% if (it.subject_code) { %> &mdash; <%= it.subject_code %><% } %></strong>
+        <% if (it.subject_title) { %><small><%= it.subject_title %></small><% } %>
+        <small>
+          <% if (it.status === 'approved') { %>
+            Signed by <%= it.signed_name %><% if (it.signed_position) { %>, <%= it.signed_position %><% } %> &middot; <%= fmtDateTime(it.acted_at) %>
+          <% } else if (it.instructor_name) { %>
+            Instructor: <%= it.instructor_name %>
+          <% } else { %>
+            Waiting for the office to review
+          <% } %>
+        </small>
+        <% if (it.status === 'rejected' && it.remarks) { %>
+          <div class="t-remark"><strong>Remarks:</strong> <%= it.remarks %></div>
+        <% } %>
+      </div>
+
+      <div class="t-side">
+        <span class="pill <%= pillClass(it.status) %>"><%= statusLabel(it.status) %></span>
+        <% if (it.status === 'rejected' && canResubmit) { %>
+          <form class="inline-form" method="post" action="/student/clearance/<%= resubmitFor %>/items/<%= it.id %>/resubmit">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button class="btn btn-outline btn-sm" type="submit">Ask for review again</button>
+          </form>
+        <% } %>
+      </div>
+    </li>
+  <% }) %>
+</ol>

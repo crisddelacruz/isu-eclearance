@@ -32,8 +32,12 @@
                    autocomplete="current-password" required />
             <button type="button" class="pw-toggle" data-target="password" aria-pressed="false">Show</button>
           </div>
-          <p class="hint">Forgot your password? Please contact your college or the system administrator.</p>
-        </div>
+
+        </div>          <% if (mailEnabled) { %>
+            <p class="hint"><a href="/forgot">Forgot your password?</a></p>
+          <% } else { %>
+            <p class="hint">Forgot your password? Please contact your college or the system administrator.</p>
+          <% } %>
 
         <button class="btn btn-primary btn-block" type="submit">Log in</button>
       </form>

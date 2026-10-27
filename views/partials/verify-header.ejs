@@ -1,0 +1,13 @@
+<header class="v-top">
+  <div class="v-wrap">
+    <a class="v-brand" href="/">
+      <img src="/images/isu-logo.jpg" alt="Isabela State University seal" />
+      <span><strong>ISU eClearance</strong><small>Isabela State University</small></span>
+    </a>
+    <% if (currentUser) { %>
+      <a class="btn btn-outline btn-sm" href="/dashboard">My dashboard</a>
+    <% } else { %>
+      <a class="btn btn-outline btn-sm" href="/login">Log in</a>
+    <% } %>
+  </div>
+</header>

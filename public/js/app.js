@@ -1,4 +1,9 @@
 (function () {
+  document.querySelectorAll('.progress[role="progressbar"]').forEach(function (progress) {
+    var fill = progress.querySelector('span');
+    if (fill) fill.style.width = progress.getAttribute('aria-valuenow') + '%';
+  });
+
   // ---------- Landing: mobile menu ----------
   var navToggle = document.getElementById('navToggle');
   var navLinks = document.getElementById('navLinks');

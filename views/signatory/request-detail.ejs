@@ -1,0 +1,97 @@
+<%- include('../layouts/app-top', { title: title, active: 'pending' }) %>
+<%
+  const hasSig = !!currentUser.signature_path;
+  const yrs = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', '6th Year'];
+  const fullName = currentUser.first_name + ' ' + currentUser.last_name;
+%>
+
+<div class="page-head no-print">
+  <a class="link-more" href="/signatory/requests">&larr; Back to Pending Requests</a>
+  <h1 style="margin-top:6px">Review request</h1>
+  <p>Check the student's details, then approve or return the request.</p>
+</div>
+
+<section class="card no-print">
+  <div class="card-head">
+    <div>
+      <h3><%= item.student_name %></h3>
+      <p class="card-sub"><%= item.id_number %> &middot; <%= item.program_code || '—' %><% if (item.year_level) { %> &middot; <%= yrs[item.year_level - 1] %><% } %></p>
+    </div>
+    <span class="pill <%= pillClass(item.status) %>"><%= statusLabel(item.status) %></span>
+  </div>
+  <div class="meta-row">
+    <div><small>You are signing as</small><strong><%= item.office_name %><% if (item.subject_code) { %> &mdash; <%= item.subject_code %><% } %></strong></div>
+    <div><small>Purpose</small><strong><%= item.purpose %></strong></div>
+    <div><small>Term</small><strong><%= item.school_year %>, <%= item.semester %></strong></div>
+    <div><small>Requested</small><strong><%= fmtDate(item.requested_at) %></strong></div>
+    <div><small>Reference no.</small><strong><%= item.reference_no %></strong></div>
+  </div>
+</section>
+
+<% if (canAct) { %>
+  <div class="review-grid no-print">
+    <!-- APPROVE -->
+    <section class="card">
+      <h3>Approve and sign</h3>
+      <p class="card-sub">Confirms the student has no pending obligation with your office. Your e-signature is placed on the clearance automatically.</p>
+
+      <% if (hasSig) { %>
+        <div class="sig-preview">
+          <img src="/files/signature/<%= currentUser.signature_path %>" alt="Your e-signature" />
+          <small><%= fullName %><% if (currentUser.position_title) { %> &middot; <%= currentUser.position_title %><% } %></small>
+        </div>
+        <form method="post" action="/signatory/requests/<%= item.item_id %>/approve" data-once
+              onsubmit="return confirm('Approve this request with your e-signature?');">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <button class="btn btn-primary btn-block" type="submit"><%- icon('checkc') %> Approve and sign</button>
+        </form>
+      <% } else { %>
+        <div class="lock-note">You have not set up an e-signature yet. <a href="/signatory/signature">Set it up now</a>, then come back.</div>
+        <button class="btn btn-primary btn-block" type="button" disabled>Approve and sign</button>
+      <% } %>
+    </section>
+
+    <!-- RETURN -->
+    <section class="card">
+      <h3>Return to student</h3>
+      <p class="card-sub">Use this when the student must settle something first. They will see your remarks and can ask you to review again.</p>
+      <form method="post" action="/signatory/requests/<%= item.item_id %>/return" data-once novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="field">
+          <label for="remarks">Remarks for the student</label>
+          <textarea class="input" id="remarks" name="remarks" maxlength="300" required
+                    placeholder="Example: Please return the borrowed book (Call no. QA76) and pay the P50 fine."></textarea>
+          <p class="hint"><span id="remarksCount">0 / 300</span> &middot; Minimum 5 characters.</p>
+        </div>
+        <button class="btn btn-danger btn-block" type="submit">Return with remarks</button>
+      </form>
+    </section>
+  </div>
+<% } else { %>
+  <section class="card no-print">
+    <h3>Your action</h3>
+    <% if (item.status === 'approved') { %>
+      <p class="card-sub" style="margin:0">You approved this on <strong><%= fmtDateTime(item.acted_at) %></strong>. Your signature is on the clearance form below.</p>
+    <% } else if (item.status === 'rejected') { %>
+      <p class="card-sub">You returned this on <strong><%= fmtDateTime(item.acted_at) %></strong>.</p>
+      <div class="t-remark"><strong>Your remarks:</strong> <%= item.remarks %></div>
+    <% } else { %>
+      <p class="card-sub" style="margin:0">This line is no longer waiting for you.</p>
+    <% } %>
+  </section>
+<% } %>
+
+<section class="card sheet-card">
+  <div class="card-head no-print">
+    <div>
+      <h3>Clearance form</h3>
+      <p class="card-sub">The line you are signing is highlighted in yellow.</p>
+    </div>
+    <button class="btn btn-outline btn-sm" type="button" onclick="window.print()">Print form</button>
+  </div>
+  <%- include('../partials/clearance-sheet', { sheet: sheet, highlight: item.item_id }) %>
+</section>
+
+<script src="/js/signing.js" defer></script>
+
+<%- include('../layouts/app-bottom') %>

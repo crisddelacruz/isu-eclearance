@@ -1,0 +1,83 @@
+<%- include('../layouts/app-top', { title: title, active: 'dashboard' }) %>
+
+<section class="welcome">
+  <h1>Welcome, <%= currentUser.first_name %>!</h1>
+  <p>
+    <% if (term) { %>Current term: <strong><%= term.school_year %>, <%= term.semester %></strong>.<% } else { %>No academic term is set as current.<% } %>
+    Here is how clearances are moving across the university.
+  </p>
+  <span class="badge badge-admin">Administrator</span>
+</section>
+
+<% if (!term) { %>
+  <div class="alert alert-warn" role="alert">There is no current term, so students cannot request clearances. <a href="/admin/terms">Set a current term</a>.</div>
+<% } %>
+<% if (alerts.officesNoSignatory.length) { %>
+  <div class="alert alert-warn" role="alert">
+    These active offices have <strong>no active signatory</strong>, so their lines will never be signed:
+    <ul><% alerts.officesNoSignatory.forEach(function (o) { %><li><%= o.name %></li><% }) %></ul>
+    <a href="/admin/users/new">Add a signatory</a>
+  </div>
+<% } %>
+<% if (alerts.noSignature > 0) { %>
+  <div class="alert alert-info" role="status"><%= alerts.noSignature %> signator<%= alerts.noSignature === 1 ? 'y has' : 'ies have' %> not uploaded an e-signature yet and cannot approve requests.</div>
+<% } %>
+<% if (alerts.demo > 0) { %>
+  <div class="alert alert-warn" role="alert">
+    <%= alerts.demo %> demo account<%= alerts.demo === 1 ? ' is' : 's are' %> still in the system. Remove them before going live.
+    <a href="/admin/settings">Open settings</a>
+  </div>
+<% } %>
+
+<div class="stat-grid">
+  <div class="stat"><span class="stat-ic green"><%- icon('user') %></span><div><strong><%= counts.students %></strong><span>Active students</span></div></div>
+  <div class="stat"><span class="stat-ic blue"><%- icon('pen') %></span><div><strong><%= counts.signatories %></strong><span>Active signatories</span></div></div>
+  <div class="stat"><span class="stat-ic gold"><%- icon('clock') %></span><div><strong><%= reqStats.in_progress %></strong><span>Clearances in progress</span></div></div>
+  <div class="stat"><span class="stat-ic green"><%- icon('checkc') %></span><div><strong><%= reqStats.completed %></strong><span>Clearances completed</span></div></div>
+</div>
+
+<div class="two-col">
+  <section class="card">
+    <div class="card-head">
+      <div><h3>Progress by college</h3><p class="card-sub">Completed clearances out of all requests this term.</p></div>
+      <a class="link-more" href="/admin/reports">Full report</a>
+    </div>
+    <% colleges.forEach(function (c) { const pct = c.total ? Math.round(c.completed / c.total * 100) : 0; %>
+      <div class="bar-row" title="<%= c.name %>">
+        <span class="name"><%= c.code %></span>
+        <div class="progress"><span <%- 'style="width: ' + pct + '%"' %>></span></div>
+        <span class="nums"><%= c.completed %> / <%= c.total %></span>
+      </div>
+    <% }) %>
+  </section>
+
+  <div>
+    <section class="card">
+      <h3>Where clearances are waiting</h3>
+      <p class="card-sub">Pending lines per office (in-progress requests).</p>
+      <% if (!bottlenecks.length) { %>
+        <div class="empty"><p>Nothing is waiting right now.</p></div>
+      <% } else { %>
+        <ul class="rank"><% bottlenecks.forEach(function (b) { %><li><span><%= b.name %></span><b><%= b.n %></b></li><% }) %></ul>
+      <% } %>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><div><h3>Recent activity</h3></div><a class="link-more" href="/admin/audit">View all</a></div>
+      <% if (!activity.length) { %>
+        <div class="empty"><p>No activity yet.</p></div>
+      <% } else { %>
+        <ul class="activity">
+          <% activity.forEach(function (a) { %>
+            <li>
+              <span class="act"><%= a.action %></span>
+              <small><%= a.first_name ? a.first_name + ' ' + a.last_name : 'Guest' %> &middot; <%= fmtDateTime(a.created_at) %></small>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../layouts/app-bottom') %>
